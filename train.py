@@ -30,6 +30,7 @@ def train(dataDir, batchSize,lr, epochs, device):
     scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     globalStep=0
     if os.path.exists("checkpoint.pt"):
+        print("LOADING CHECKPOINT __")
         checkpoint=torch.load("checkpoint.pt")
         net.load_state_dict(checkpoint['modelStateDict'])
         optimizer.load_state_dict(checkpoint['optimizerStateDict'])
@@ -42,7 +43,7 @@ def train(dataDir, batchSize,lr, epochs, device):
 
         with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="img") as pbar:
             for idx, batch in enumerate(trainLoader):
-                print("batch : {}/{}".format(idx, len(trainLoader)), end="\r")
+#                print("batch : {}/{}".format(idx, len(trainLoader)), end="\r")
                 revdSpecs=batch['reverbed'].to(device=device, dtype=torch.float32)
                 orgSpecs=batch['original'].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
@@ -58,6 +59,15 @@ def train(dataDir, batchSize,lr, epochs, device):
 
                 # pbar.update(revdSpecs.shape)
                 globalStep+=1
+
+                if idx==10:
+                    print("saving model ..")
+                    torch.save({
+                        'epoch': epoch,
+                        'modelStateDict': net.state_dict(),
+                        'optimizerStateDict': optimizer.state_dict(),
+                        'loss': loss,
+                    }, 'checkpoint.pt')
 
                 if globalStep % (epochs // (10*batchSize))==0:
                     for tag, value in net.named_parameters():
