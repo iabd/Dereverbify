@@ -1,12 +1,6 @@
-import scipy, os, random, sys, argparse
+import os, random, argparse, librosa
 from tqdm import tqdm
-import numpy as np
 from preprocessAudio import reverbify
-from scipy.io import wavfile
-
-
-
-
 
 
 if __name__=="__main__":
@@ -25,8 +19,9 @@ if __name__=="__main__":
             if file.endswith(".wav"):
                 print("{}/{}".format(idx+1, len(files)), end="\r")
 
-                revAudio=reverbify(args.data+file, rt60=random.uniform(0.3,0.8))
-                scipy.io.wavfile.write(args.target+file, args.sr, revAudio.astype(np.int16))
+                revAudio=reverbify(args.data+file, rt60=random.uniform(0.3,1.8))
+                librosa.output.write_wav(args.target+file, revAudio,  args.sr)
+                #scipy.io.wavfile.write(args.target+file, args.sr, revAudio.astype(np.int16))
                 pbar.update()
 
     print("DONE!!!")

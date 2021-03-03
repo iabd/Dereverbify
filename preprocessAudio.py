@@ -1,11 +1,6 @@
-import torch, librosa
-import torch.nn as nn
-import torch.nn.functional as F
-import torchaudio
-import torchaudio.transforms as T
+import librosa
 import pyroomacoustics as pra
 from librosa import display
-from scipy.io import wavfile
 from matplotlib import cm
 import numpy as np
 import pylab, os
@@ -22,10 +17,6 @@ def fetchProgress(dir, ids):
 
 
 
-def loadAudio(filename):
-    waveform, sr=torchaudio.load(filename)
-
-
 def clipRevAudio(org, rev):
     if np.nonzero(org)[0][0]<np.nonzero(rev)[0][0]:
         return rev[np.nonzero(rev)[0][0]:]
@@ -39,7 +30,7 @@ def saveSpectrogram(s, name):
     pylab.savefig('{}.jpg'.format(name), bbox_inches=None, pad_inches=0)
     pylab.close()
 
-def reverbify(audio, rt60=0.6, roomDim=[8, 10, 5]):
+def reverbify(audio, rt60=0.6, roomDim=[10, 10, 8]):
 
     """
     This function uses Sabine's formula to estimate the reverberation time.
@@ -49,8 +40,7 @@ def reverbify(audio, rt60=0.6, roomDim=[8, 10, 5]):
     :param roomDim: lxbxh dimension of room
     :return: reverbed audio
     """
-    _, orgAudio= wavfile.read(audio)
-    roomDim=[8,10,4]
+    orgAudio, _= librosa.load(audio, 22050)
 
 
     energyAbsorption, maxOrder=pra.inverse_sabine(rt60, roomDim)
@@ -66,21 +56,12 @@ def reverbify(audio, rt60=0.6, roomDim=[8, 10, 5]):
     room.compute_rir()
     room.simulate()
 
-    revAudio=room.mic_array.signals[0].astype(np.int16)
+    revAudio=room.mic_array.signals[0]
     revAudio=clipRevAudio(orgAudio, revAudio)
 
     return revAudio
 
 
-def preprocess(a1, a2):
-    a1=librosa.stft(a1, n_fft=511, window='hann', win_length=32)
-    a2=librosa.stft(a2, n_fft=511, window='hann', win_length=32)
-    # a2 = a2[:, :np.where(abs(a2) == 0)[1][0]]  # clip from zeros which will get us -inf values for log
-
-    for i in range(a1.shape[1]):
-        tempA1=a1[:, i*256:(i+1)*256]
-        tempA2=a2[:, i*256:(i+1)*256]
-        tempImag=a2.imag
 
 
 
