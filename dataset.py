@@ -1,50 +1,46 @@
 from glob import glob
 from os import listdir
-from os.path import splitext
 import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset
+from itertools import chain, cycle
+from torch.utils.data import IterableDataset
 import torchvision.transforms as transforms
-from PIL import Image
-
-class BasicDataset(Dataset):
-    def __init__(self, specDir, sr=16000):
-        self.dir =specDir
-        self.sr =sr
-        self.ids =[splitext(file[4:])[0] for file in listdir(self.dir) if file.startswith('org_')]
-
-    def __len__(self):
-        return len(self.ids)
-
-    def toImage(self, tensor):
-        plt.imshow(tensor.numpy().astype(np.int16).transpose((1, 2, 0)))
-
-    @classmethod
-    def preprocess(cls, img, size=(256, 256)):
-        img =img.resize(size)
-        return np.array(img)
+import librosa, torch
 
 
-    def __getitem__(self, i):
-        idx =self.ids[i]
-        original =glob(self.dir +"org_" +idx +".npy")[0]
-        reverbed =glob(self.dir +"rev_" +idx +".npy")[0]
-        transform =transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+class TrainDataset(IterableDataset):
+    def __init__(self, wavPath, revPath, samplingRate, segmentLength, nfft, winLength, window):
+        self.sr=samplingRate
+        self.segmentLength=segmentLength
+        self.nfft=nfft
+        self.window=window
+        self.winLength=winLength
+        self.wavPath = wavPath
+        self.revPath = revPath
+        self.ids = (i for i in listdir(revPath) if not i.startswith('.'))
+        self.transform = transforms.Compose([
+            transforms.Normalize((0.5,), (0.5,))
         ])
 
-        original=np.load(original)
-        reverbed =np.load(reverbed)
+    def squaredChunks(self, spec, n=256):
+        l = len(spec)
+        for i in range(0, l - l % n, n):
+            yield np.expand_dims(spec[i:i + n].T, axis=0)
 
-        return {
-            'original': transform(original),
-            'reverbed': transform(reverbed)
-        }
+    def getAudio(self, idx):
+        org = glob(self.wavPath + idx)[0]
+        rev = glob(self.revPath + idx)[0]
+        org, _ = librosa.load(org, sr=self.sr)
+        rev, _ = librosa.load(rev, sr=self.sr)
+        org = np.abs(librosa.stft(org, n_fft=self.nfft, window=self.window, win_length=self.winLength))[1:, :self.segmentLength]
+        rev = np.abs(librosa.stft(rev, n_fft=self.nfft, window=self.window, win_length=self.winLength))[1:, :self.segmentLength]
+        orgArray = torch.FloatTensor(list(self.squaredChunks(np.abs(org.T))))
+        revArray = torch.FloatTensor(list(self.squaredChunks(np.abs(rev.T))))
+        for i, v in enumerate(revArray):
+            yield (self.transform(orgArray[i]), self.transform(v))
 
+    def getStream(self, ids):
+        yield from chain.from_iterable(map(self.getAudio, cycle(ids)))
 
-# if __name__=="__main__":
-#     path="/Users/zombie/Downloads/LJSpeech-1.1/specs/"
-#     t=BasicDataset(path)
-#     print(t[0])
-    # breakpoint()
+    def __iter__(self):
+        return self.getStream(self.ids)
+

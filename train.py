@@ -1,5 +1,5 @@
 import argparse, json, torch, os
-from dataset import BasicDataset
+from dataset import TrainDataset
 from torch.utils.data import DataLoader, random_split
 import torch.optim as optim
 from unet import UNet
@@ -14,22 +14,22 @@ from torch.utils.tensorboard import SummaryWriter
 def evaluate(net, valLoader, device):
 
     return 0
-def train(dataDir, batchSize,lr, epochs, device):
+def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig):
     writer=SummaryWriter()
-    dataset=BasicDataset(dataDir)
+    dataset=TrainDataset(**dataConfig)
     nVal=int(len(dataset)*0.2)
     nTrain=len(dataset)-nVal
     trainData, valData=random_split(dataset, [nTrain, nVal])
-    trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=True, num_workers=0)
-    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=True, num_workers=0)
+    trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=True, num_workers=4)
+    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=True, num_workers=4)
 
 
-    net=UNet(3, 3)
+    net=UNet(1, 1)
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     criterion = nn.BCEWithLogitsLoss()
     scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     globalStep=0
-    if os.path.exists("checkpoint.pt"):
+    if os.path.exists(checkpointPath):
         print("LOADING CHECKPOINT __")
         checkpoint=torch.load("checkpoint.pt")
         net.load_state_dict(checkpoint['modelStateDict'])
@@ -43,9 +43,8 @@ def train(dataDir, batchSize,lr, epochs, device):
 
         with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="img") as pbar:
             for idx, batch in enumerate(trainLoader):
-#                print("batch : {}/{}".format(idx, len(trainLoader)), end="\r")
-                revdSpecs=batch['reverbed'].to(device=device, dtype=torch.float32)
-                orgSpecs=batch['original'].to(device=device, dtype=torch.float32)
+                orgSpecs = batch[0].to(device=device, dtype=torch.float32)
+                revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
                 loss=criterion(genSpecs, orgSpecs)
                 epochLoss+=loss.item()
@@ -56,11 +55,9 @@ def train(dataDir, batchSize,lr, epochs, device):
                 loss.backward()
                 nn.utils.clip_grad_value_(net.parameters(), 0.1)
                 optimizer.step()
-
-                # pbar.update(revdSpecs.shape)
                 globalStep+=1
 
-                if idx==10:
+                if idx==saveEvery:
                     print("saving model ..")
                     torch.save({
                         'epoch': epoch,

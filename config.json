@@ -1,36 +1,19 @@
 {
     "trainConfig": {
-        "epochs": 100000,
+        "epochs": 100,
         "lr": 1e-4,
         "batchSize": 8,
-	"dataDir":"/Users/zombie/Downloads/LJSpeech-1.1/specs/",
-	"device": "cpu"
+	    "device": "cuda",
+        "saveEvery": 500,
+        "checkpointPath": "checkpoint.pt"
     },
-    "data_config": {
-        "training_files": "train_files.txt",
-        "segment_length": 16000,
-        "sampling_rate": 22050,
-        "filter_length": 1024,
-        "hop_length": 256,
-        "win_length": 1024,
-        "mel_fmin": 0.0,
-        "mel_fmax": 8000.0
+    "dataConfig": {
+        "wavDir": "../theWitcher/wavs/",
+        "revDir": "../theWitcher/revWavs/",
+        "segmentLength": 19000,
+        "samplingRate": 16000,
+        "nfft": 512,
+        "winLength": 32,
+        "window": "hamming"
     },
-    "dist_config": {
-        "dist_backend": "nccl",
-        "dist_url": "tcp://localhost:54321"
-    },
-
-    "waveglow_config": {
-        "n_mel_channels": 80,
-        "n_flows": 12,
-        "n_group": 8,
-        "n_early_every": 4,
-        "n_early_size": 2,
-        "WN_config": {
-            "n_layers": 8,
-            "n_channels": 256,
-            "kernel_size": 3
-        }
-    }
 }

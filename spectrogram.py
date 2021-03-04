@@ -76,12 +76,6 @@ class Spectrogram:
             with open(self.specDir+"progress", "w") as f:
                 f.write(idx)
 
-
-
-
-
-
-
     def lwhSpectrum(self):
         with tqdm(total=len(self.ids[self.currentProgress:]), position=self.currentProgress, leave=True) as pbar:
             for idx in self.ids[self.currentProgress:]:
