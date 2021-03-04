@@ -2,6 +2,7 @@ import argparse, json, torch, os
 from dataset import TrainDataset
 from torch.utils.data import DataLoader, random_split
 import torch.optim as optim
+import torch.nn.functional as F
 from unet import UNet
 import torch.nn as nn
 from tqdm import tqdm
@@ -11,7 +12,23 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 
-def evaluate(net, valLoader, device):
+def validate(net, valLoader, device):
+    tot=0
+    with tqdm(n_val=len(valLoader), desc='Validation round', unit='batch', leave=False) as pbar:
+        for idx, batch in enumerate(valLoader):
+            revSpecs=batch[1].to(device=device, dtype=torch.float32)
+            orgSpecs=batch[0].to(device=device, dtype=torch.float32)
+
+            with torch.no_grad():
+                pred=net(revSpecs)
+
+            tot+=F.cross_entropy(pred, orgSpecs)
+
+            pbar.update()
+
+    net.train()
+    return tot/=len(valLoader)
+
 
     return 0
 def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig):
@@ -70,16 +87,16 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig)
                     for tag, value in net.named_parameters():
                         tag=tag.replace(".", "/")
                         writer.add_histogram('weights/'+tag, value.data.cpu().numpy(), globalStep)
-                        writer.add_histogram('grads/'+tag, value.grad.data.cpu().numpy(), globalStep)
+                        if value.grad is not None:
+                            writer.add_histogram('grads/'+tag, value.grad.data.cpu().numpy(), globalStep)
 
-                    valScore=evaluate(net, valLoader, device)
+                    valScore=validate(net, valLoader, device)
                     scheduler.step(valScore)
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
                     logging.info('Validation cross entropy: {}'.format(valScore))
                     writer.add_scalar('Dice/test', valScore, globalStep)
-
-                    writer.add_images('Target Specs', orgSpecs, globalStep)
-                    writer.add_images('Generated Specs', genSpecs, globalStep)
+                    writer.add_images('Target Specs', orgSpecs[0], globalStep)
+                    writer.add_images('Generated Specs', genSpecs[0], globalStep)
 
         torch.save({
                     'epoch': epoch,
