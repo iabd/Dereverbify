@@ -2,14 +2,14 @@
     "trainConfig": {
         "epochs": 100,
         "lr": 1e-4,
-        "batchSize": 8,
-	    "device": "cpu",
-        "saveEvery": 50,
+        "batchSize": 6,
+	    "device": "cuda",
+        "saveEvery": 500,
         "checkpointPath": "../datadrive/checkpoint.pt"
     },
     "dataConfig": {
-        "wavPath": "../datadrive/ljspeech/wavs/",
-        "revPath": "../datadrive/ljspeech/revWavs/",
+        "wavPath": "../datadrive/theWitcher/wavs/",
+        "revPath": "../datadrive/theWitcher/revWavs/",
         "segmentLength": 19000,
         "samplingRate": 16000,
         "nfft": 512,

@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import librosa
 import pyroomacoustics as pra
 from matplotlib import cm
@@ -21,7 +23,7 @@ def tensorToImage(tensor):
     fig=plt.Figure()
     canvas=FigureCanvas(fig)
     ax=fig.add_subplot(111)
-    p=librosa.display.specshow(librosa.amplitude_to_db(tensor**2, ref=np.max), ax=ax, y_axis='hz', x_axis='time')
+    p=librosa.display.specshow(librosa.amplitude_to_db(tensor.cpu().detach().numpy()**2), ax=ax, y_axis='hz', x_axis='time', cmap=cm.jet)
 
     pylab.savefig("writer.jpg", bbox_inches=None, pad_inches=0)
     img=Image.open("writer.jpg").convert('RGB')

@@ -41,7 +41,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig)
     trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=False, num_workers=0)
 #    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=True, num_workers=0)
 
-    net=UNet(1, 1)
+    net=UNet(1, 1).cuda()
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     criterion = nn.BCEWithLogitsLoss()
     scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
@@ -83,7 +83,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig)
                         'loss': loss,
                     }, 'checkpoint.pt')
 
-                if globalStep % (epochs // (10*batchSize))==0:
+                
                     for tag, value in net.named_parameters():
                         tag=tag.replace(".", "/")
                         writer.add_histogram('weights/'+tag, value.data.cpu().numpy(), globalStep)
@@ -95,17 +95,9 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig)
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
                     #logging.info('Validation cross entropy: {}'.format(valScore))
                     #writer.add_scalar('Dice/test', valScore, globalStep)
-                    image=tensorToImage(orgSpecs[0][0])
-                    breakpoint()
-                    writer.add_images('Target Specs', image, globalStep)
-                    writer.add_images('Generated Specs', tensorToImage(genSpecs[0][0]), globalStep)
-
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': net.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'loss': loss,
-                    }, 'checkpoint.pt')
+                    #image=tensorToImage(orgSpecs[0][0])
+                    #writer.add_images('Target Specs', image, globalStep)
+                    #writer.add_images('Generated Specs', tensorToImage(genSpecs[0][0]), globalStep)
 
     writer.close()
 
