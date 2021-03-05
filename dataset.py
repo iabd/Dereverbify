@@ -16,10 +16,13 @@ class TrainDataset(IterableDataset):
         self.winLength=winLength
         self.wavPath = wavPath
         self.revPath = revPath
-        self.ids = (i for i in listdir(revPath) if not i.startswith('.'))
+        self.ids = [i for i in listdir(revPath) if not i.startswith('.')]
         self.transform = transforms.Compose([
             transforms.Normalize((0.5,), (0.5,))
         ])
+
+    def __len__(self):
+        return len(self.ids)
 
     def squaredChunks(self, spec, n=256):
         l = len(spec)

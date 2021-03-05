@@ -7,8 +7,9 @@ from unet import UNet
 import torch.nn as nn
 from tqdm import tqdm
 import logging
+from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
-
+from preprocessAudio import tensorToImage
 
 
 
@@ -27,19 +28,18 @@ def validate(net, valLoader, device):
             pbar.update()
 
     net.train()
-    return tot/=len(valLoader)
+    return tot/len(valLoader)
 
 
     return 0
 def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig):
     writer=SummaryWriter()
-    dataset=TrainDataset(**dataConfig)
-    nVal=int(len(dataset)*0.2)
-    nTrain=len(dataset)-nVal
-    trainData, valData=random_split(dataset, [nTrain, nVal])
-    trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=True, num_workers=4)
-    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=True, num_workers=4)
-
+    trainData=TrainDataset(**dataConfig)
+    #nVal=int(len(dataset)*0.2)
+    #nTrain=len(dataset)-nVal
+    #trainData, valData=random_split(dataset, [nTrain, nVal])
+    trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=False, num_workers=0)
+#    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=True, num_workers=0)
 
     net=UNet(1, 1)
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
@@ -59,7 +59,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig)
         epochLoss=0
 
         with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="img") as pbar:
-            for idx, batch in enumerate(trainLoader):
+            for idx, batch in enumerate(islice(trainLoader, 1000)):
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
@@ -90,13 +90,15 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, **dataConfig)
                         if value.grad is not None:
                             writer.add_histogram('grads/'+tag, value.grad.data.cpu().numpy(), globalStep)
 
-                    valScore=validate(net, valLoader, device)
-                    scheduler.step(valScore)
+                    #valScore=validate(net, valLoader, device)
+                    #scheduler.step(valScore)
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
-                    logging.info('Validation cross entropy: {}'.format(valScore))
-                    writer.add_scalar('Dice/test', valScore, globalStep)
-                    writer.add_images('Target Specs', orgSpecs[0], globalStep)
-                    writer.add_images('Generated Specs', genSpecs[0], globalStep)
+                    #logging.info('Validation cross entropy: {}'.format(valScore))
+                    #writer.add_scalar('Dice/test', valScore, globalStep)
+                    image=tensorToImage(orgSpecs[0][0])
+                    breakpoint()
+                    writer.add_images('Target Specs', image, globalStep)
+                    writer.add_images('Generated Specs', tensorToImage(genSpecs[0][0]), globalStep)
 
         torch.save({
                     'epoch': epoch,
@@ -116,6 +118,6 @@ if __name__=="__main__":
         data=f.read()
     config=json.loads(data)
     trainConfig=config["trainConfig"]
-    # dataConfig=config["dataConfig"]
+    dataConfig=config["dataConfig"]
     numGPUs=torch.cuda.device_count()
-    train(**trainConfig)
+    train(**trainConfig, **dataConfig)

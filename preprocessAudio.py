@@ -2,9 +2,12 @@ import librosa
 import pyroomacoustics as pra
 from matplotlib import cm
 import numpy as np
-import pylab, os
+import pylab, os, torch
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
+import matplotlib.pyplot as plt
+from librosa import display
+from PIL import Image
+import PIL
 
 def fetchProgress(dir, ids):
     try:
@@ -14,8 +17,19 @@ def fetchProgress(dir, ids):
     except:
         return 0
 
+def tensorToImage(tensor):
+    fig=plt.Figure()
+    canvas=FigureCanvas(fig)
+    ax=fig.add_subplot(111)
+    p=librosa.display.specshow(librosa.amplitude_to_db(tensor**2, ref=np.max), ax=ax, y_axis='hz', x_axis='time')
+
+    pylab.savefig("writer.jpg", bbox_inches=None, pad_inches=0)
+    img=Image.open("writer.jpg").convert('RGB')
+    img=torch.from_numpy(np.array(img))
+    return img.unsqueeze(0).permute(0, 3, 1,2)
 
 
+    
 def clipRevAudio(org, rev):
     if np.nonzero(org)[0][0]<np.nonzero(rev)[0][0]:
         return rev[np.nonzero(rev)[0][0]:]

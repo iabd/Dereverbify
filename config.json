@@ -3,17 +3,17 @@
         "epochs": 100,
         "lr": 1e-4,
         "batchSize": 8,
-	    "device": "cuda",
-        "saveEvery": 500,
-        "checkpointPath": "checkpoint.pt"
+	    "device": "cpu",
+        "saveEvery": 50,
+        "checkpointPath": "../datadrive/checkpoint.pt"
     },
     "dataConfig": {
-        "wavDir": "../theWitcher/wavs/",
-        "revDir": "../theWitcher/revWavs/",
+        "wavPath": "../datadrive/ljspeech/wavs/",
+        "revPath": "../datadrive/ljspeech/revWavs/",
         "segmentLength": 19000,
         "samplingRate": 16000,
         "nfft": 512,
         "winLength": 32,
         "window": "hamming"
-    },
+    }
 }
