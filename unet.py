@@ -54,6 +54,7 @@ class Downsample(nn.Module):
             nn.MaxPool2d(2),
             CBL(inChannels, outChannels)
         )
+    
     def forward(self, input_):
         if self.maxpool:
             return self.maxpool(self.CBL(input_))
@@ -63,10 +64,10 @@ class OutConv(nn.Module):
     def __init__(self, inChannels, outChannels):
         super(OutConv, self).__init__()
         self.conv=nn.Conv2d(inChannels, outChannels, kernel_size=1)
-        self.tanh=nn.Tanh()
+        self.sigm=nn.Sigmoid()
 
     def forward(self, input_):
-        return self.tanh(self.conv(input_))
+        return self.sigm(self.conv(input_))
 
 
 
@@ -87,8 +88,10 @@ class UNet(nn.Module):
         self.down5=Downsample(512, 512)
         self.down6=Downsample(512, 512)
         self.down7=Downsample(512, 1024)
+        
         self.up1=Upsample(1024, 1024)
         self.up2=Upsample(1024, 1024)
+        self.dropout=nn.Dropout(0.2)
         self.up3=Upsample(1024, 1024)
         self.up4=Upsample(1024, 512)
         self.up5=Upsample(512, 256)
@@ -107,10 +110,14 @@ class UNet(nn.Module):
         x8=self.down7(x7) # 1x1x1024
         x=self.up1(x8, x7) # 2x2x1024
         x=self.up2(x, x6) # 4x4x1024
+        x=self.dropout(x)
         x=self.up3(x, x5) # 8x8x1024
-        x=self.up4(x, x4) # 16x16x512
+        x=self.up4(x, x4)
+        x=self.dropout(x)
+        # 16x16x512
         x=self.up5(x, x3) # 32x32x256
         x = self.up6(x, x2) # 64x64x128
+        x=self.dropout(x)
         x = self.up7(x, x1) # 128x128x128
-        logits=self.outc(x) # 1x128x128
+        logits=self.outc(x)# 1x128x128
         return logits

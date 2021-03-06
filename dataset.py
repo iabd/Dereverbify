@@ -17,9 +17,6 @@ class TrainDataset(IterableDataset):
         self.wavPath = wavPath
         self.revPath = revPath
         self.ids = [i for i in listdir(revPath) if not i.startswith('.')]
-        self.transform = transforms.Compose([
-            transforms.Normalize((0.5,), (0.5,))
-        ])
 
         if shuffle:
             random.shuffle(self.ids)
@@ -27,6 +24,9 @@ class TrainDataset(IterableDataset):
     def __len__(self):
         return len(self.ids)
 
+    def transform(self, X):
+        return (X-X.min())/(X.max()-X.min())
+    
     def squaredChunks(self, spec, n=256):
         l = len(spec)
         for i in range(0, l - l % n, n):
@@ -41,10 +41,10 @@ class TrainDataset(IterableDataset):
               :self.segmentLength]
         rev = np.abs(librosa.stft(rev, n_fft=self.nfft, window=self.window, win_length=self.winLength))[1:,
               :self.segmentLength]
-        orgArray = torch.FloatTensor(list(self.squaredChunks(np.abs(org.T))))
-        revArray = torch.FloatTensor(list(self.squaredChunks(np.abs(rev.T))))
+        orgArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(org.T)))))
+        revArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(rev.T)))))
         for i, v in enumerate(revArray):
-            yield (self.transform(orgArray[i]), self.transform(v))
+            yield (orgArray[i],v)
 
     def getStream(self, ids):
         yield from chain.from_iterable(map(self.getAudio, cycle(ids)))

@@ -1,7 +1,7 @@
 import os, random, argparse, librosa
 from tqdm import tqdm
 from preprocessAudio import reverbify
-
+import soundfile as sf
 
 if __name__=="__main__":
 
@@ -20,7 +20,8 @@ if __name__=="__main__":
                 print("{}/{}".format(idx+1, len(files)), end="\r")
 
                 revAudio=reverbify(args.data+file, rt60=random.uniform(0.3,1.8))
-                librosa.output.write_wav(args.target+file, revAudio,  args.sr)
+                sf.write(args.target+file, revAudio, args.sr)
+                #librosa.output.write_wav(args.target+file, revAudio,  args.sr)
                 #scipy.io.wavfile.write(args.target+file, args.sr, revAudio.astype(np.int16))
                 pbar.update()
 
