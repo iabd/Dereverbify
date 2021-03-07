@@ -34,15 +34,13 @@ def validate(net, valLoader, device):
 
 
     return 0
+
 def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, dataConfig, **valConfig):
     writer=SummaryWriter()
     trainData=TrainDataset(**dataConfig)
     valData=TrainDataset(**valConfig)
-    #nVal=int(len(dataset)*0.2)
-    #nTrain=len(dataset)-nVal
-    #trainData, valData=random_split(dataset, [nTrain, nVal])
     trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=False, num_workers=4)
-    valLoader=DataLoader(valData, batch_size=1, shuffle=False, num_workers=0)
+    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=False, num_workers=4)
 
     net=UNet(1, 1)
     if not finetune:
@@ -56,7 +54,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, dat
         checkpoint=torch.load("checkpoint.pt", map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
-        #optimizer.load_state_dict(checkpoint['optimizerStateDict'])
+        optimizer.load_state_dict(checkpoint['optimizerStateDict'])
         epoch=checkpoint['epoch']
         loss=checkpoint['loss']
 
@@ -65,8 +63,8 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, dat
         net.train()
         epochLoss=0
 
-        with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="batch", leave=False) as pbar:
-            for idx, batch in enumerate(islice(trainLoader, 1000)):
+        with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", leave=False) as pbar:
+            for idx, batch in enumerate(islice(trainLoader, 2002)):
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
@@ -80,7 +78,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, dat
                 optimizer.step()
                 globalStep+=1
 
-                if idx==saveEvery:
+                if idx%saveEvery==0:
                     print("saving model ..")
                     torch.save({
                         'epoch': epoch,

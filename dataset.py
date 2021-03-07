@@ -42,7 +42,7 @@ class TrainDataset(IterableDataset):
         rev = np.abs(librosa.stft(rev, n_fft=self.nfft, window=self.window, win_length=self.winLength))[1:,
               :self.segmentLength]
         orgArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(org.T)))))
-        revArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(rev.T)))))
+        revArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(rev.T)))))[:orgArray.shape[0]]
         for i, v in enumerate(revArray):
             yield (orgArray[i],v)
 
