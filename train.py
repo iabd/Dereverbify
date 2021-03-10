@@ -9,7 +9,7 @@ from tqdm import tqdm
 import logging
 from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
-from preprocessAudio import tensorToImage
+from preprocessAudio import tensorToImage, diceCoef
 
 
 
@@ -35,7 +35,7 @@ def validate(net, valLoader, device):
 
     return 0
 
-def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, dataConfig, **valConfig):
+def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bceWeight,dataConfig, **valConfig):
     writer=SummaryWriter()
     trainData=TrainDataset(**dataConfig)
     valData=TrainDataset(**valConfig)
@@ -68,7 +68,9 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, dat
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
-                loss=criterion(genSpecs, orgSpecs)
+                bceLoss=criterion(genSpecs, orgSpecs)
+                diceLoss=diceCoef(genSpecs, orgSpecs)
+                loss=bceLoss*bceWeight+diceLoss*(1-bceWeight)
                 epochLoss+=loss.item()
                 writer.add_scalar('train loss', loss.item(), globalStep)
                 pbar.set_postfix(**{'loss (batch)': loss.item()})

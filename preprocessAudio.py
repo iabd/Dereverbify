@@ -11,6 +11,14 @@ from librosa import display
 from PIL import Image
 import PIL
 
+def diceCoef(prediction, target, smooth=1.):
+    p=prediction.contiguous()
+    t=target.contiguous()
+
+    intersection=(p*t).sum(dim=2).sum(dim=2)
+    loss=(1-((2.*intersection+smooth)/(p.sum(dim=2).sum(dim=2)+t.sum(dim=2).sum(dim=2)+smooth)))
+    return loss.mean()
+    
 def fetchProgress(dir, ids):
     try:
         with open(dir+"progress", 'r') as f:
