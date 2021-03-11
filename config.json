@@ -2,11 +2,12 @@
     "trainConfig": {
         "epochs": 100,
 	"finetune" : true,
-        "lr": 6e-5,
+        "lr": 6e-4,
         "batchSize": 6,
-	    "device": "cuda",
+	"device": "cuda",
+	"bceWeight": 0.45,
         "saveEvery": 500,
-        "checkpointPath": "checkpoint.pt"
+        "checkpointPath": "../datadrive/checkpoints/diceBCE2.5k"
     },
     "dataConfig": {
         "wavPath": "../datadrive/theWitcher/wavs/",

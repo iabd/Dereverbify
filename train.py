@@ -16,7 +16,7 @@ from preprocessAudio import tensorToImage, diceCoef
 def validate(net, valLoader, device):
     tot=0
     
-    with tqdm(total=500, desc='Validation round', unit='batch', leave=False) as pbar:
+    with tqdm(total=100, desc='Validation round', unit='batch', leave=False) as pbar:
         for idx, batch in enumerate(islice(valLoader, 100)):
             
             revSpecs=batch[1].to(device=device, dtype=torch.float32)
@@ -25,7 +25,8 @@ def validate(net, valLoader, device):
             with torch.no_grad():
                 pred=net(revSpecs)
 
-            tot+=F.binary_cross_entropy(pred, orgSpecs)
+            #tot+=F.binary_cross_entropy(pred, orgSpecs)
+            tot+=diceCoef(pred, orgSpecs)
 
             pbar.update()
 
@@ -51,7 +52,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
     globalStep=0
     if finetune:
         print("LOADING CHECKPOINT __")
-        checkpoint=torch.load("checkpoint.pt", map_location='cpu')
+        checkpoint=torch.load(checkpointPath, map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
         optimizer.load_state_dict(checkpoint['optimizerStateDict'])
@@ -64,7 +65,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
         epochLoss=0
 
         with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", leave=False) as pbar:
-            for idx, batch in enumerate(islice(trainLoader, 2002)):
+            for idx, batch in enumerate(islice(trainLoader, 2011)):
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
@@ -80,7 +81,8 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
                 optimizer.step()
                 globalStep+=1
 
-                if idx%saveEvery==0:
+                if (idx+1)%saveEvery==0:
+                    pdb.set_trace()
                     print("saving model ..")
                     torch.save({
                         'epoch': epoch,
@@ -88,7 +90,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
                         'optimizerStateDict': optimizer.state_dict(),
                         'loss': loss,
                     }, 'checkpoint.pt')
-
+                    
                 
                     for tag, value in net.named_parameters():
                         tag=tag.replace(".", "/")
