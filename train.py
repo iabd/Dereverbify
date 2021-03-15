@@ -9,7 +9,7 @@ from tqdm import tqdm
 import logging
 from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
-from preprocessAudio import tensorToImage, diceCoef
+from audioUtils import tensorToImage, diceCoef
 
 
 
@@ -32,8 +32,6 @@ def validate(net, valLoader, device):
 
     net.train()
     return tot/len(valLoader)
-
-
     return 0
 
 def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bceWeight,dataConfig, **valConfig):
@@ -42,7 +40,6 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
     valData=TrainDataset(**valConfig)
     trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=False, num_workers=4)
     valLoader=DataLoader(valData, batch_size=batchSize, shuffle=False, num_workers=4)
-
     net=UNet(1, 1)
     if not finetune:
         net.cuda()
@@ -56,8 +53,6 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
         optimizer.load_state_dict(checkpoint['optimizerStateDict'])
-        epoch=checkpoint['epoch']
-        loss=checkpoint['loss']
 
         
     for epoch in range(epochs):

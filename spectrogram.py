@@ -1,7 +1,7 @@
 import os, librosa
 from glob import glob
 import numpy as np
-from preprocessAudio import saveSpectrogram, fetchProgress
+from audioUtils import saveSpectrogram, fetchProgress
 from tqdm import tqdm
 
 
@@ -21,38 +21,37 @@ class Spectrogram:
 
 
     @classmethod
-    def complex(cls, mag, phase):
+    def magPhaseToComplex(cls, mag, phase):
         imag=np.cos(phase)+1j*np.sin(phase)
         return mag*imag
 
     @classmethod
-    def magphase(cls, stftMatrix):
+    def complexToMagPhase(cls, stftMatrix):
         mag=np.abs(stftMatrix)
         phase=np.angle(stftMatrix, deg=True)
         return mag, phase
 
 
-    def specToAudio(self, mag, phase):
+    def magPhaseToAudio(self, mag, phase):
 
         if not mag.shape==phase.shape:
             phase=phase[:mag.shape[0], :mag.shape[1]]
 
-        spectrum=self.complex(mag, phase)
+        spectrum=self.magPhaseToComplex(mag, phase)
         audio=librosa.istft(spectrum, win_length=32, window='hamming')
         return audio
 
 
-
-    def audioToSpec(self, a1, a2):
-        a1 = librosa.stft(a1, n_fft=512, window='hamming', win_length=32).astype(np.complex128)
-        a2 = librosa.stft(a2, n_fft=512, window='hamming', win_length=32).astype(np.complex128)
+    def audiosToMagPhase(self, a1, a2):
+        a1 = librosa.stft(a1, n_fft=512, window='hamming', win_length=32)
+        a2 = librosa.stft(a2, n_fft=512, window='hamming', win_length=32)
         try:
             a2 = a2[:, :np.where(abs(a2) == 0)[1][0]]  # clip from zeros which will get us -inf values for log
         except:
             pass
 
-        magA1, _=self.magphase(a1)
-        magA2, phase=self.magphase(a2)
+        magA1, _=self.complexToMagPhase(a1)
+        magA2, phase=self.complexToMagPhase(a2)
         return magA1, magA2, phase
 
 
@@ -64,7 +63,7 @@ class Spectrogram:
             orgAudio, _ = librosa.load(orgAudio[0], sr=self.sr)
             revAudio, _ = librosa.load(revAudio[0], sr=self.sr)
 
-            org, rev, phase=self.audioToSpec(orgAudio, revAudio)
+            org, rev, phase=self.audioToMagPhase(orgAudio, revAudio)
 
             for i in range(org.shape[1]):
                 tempOrg=org[:, i*256:(i+1)*256]
@@ -84,7 +83,7 @@ class Spectrogram:
                 orgAudio, _=librosa.load(orgAudio[0], sr=self.sr)
                 revAudio, _=librosa.load(revAudio[0], sr=self.sr)
 
-                org, rev, phase=self.audioToSpec(orgAudio, revAudio)
+                org, rev, phase=self.audioToMagPhase(orgAudio, revAudio)
                 for i in range(org.shape[1]):
                     tempOrg=org[:, i*256:(i+1)*256]
                     if tempOrg.shape[1]==256:

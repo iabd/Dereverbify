@@ -1,24 +1,24 @@
 {
     "trainConfig": {
-        "epochs": 100,
-	"finetune" : true,
-        "lr": 6e-4,
-        "batchSize": 6,
-	"device": "cuda",
-	"bceWeight": 0.45,
-        "saveEvery": 500,
-        "checkpointPath": "../datadrive/checkpoints/diceBCE2.5k"
+      "epochs": 100,
+      "finetune" : true,
+      "lr": 6e-4,
+      "batchSize": 6,
+      "device": "cuda",
+      "bceWeight": 0.45,
+      "saveEvery": 500,
+      "checkpointPath": "../datadrive/checkpoints/diceBCE2.5k"
     },
     "dataConfig": {
         "wavPath": "../datadrive/theWitcher/wavs/",
         "revPath": "../datadrive/theWitcher/revWavs/",
-        "segmentLength": 19000,
-	"samplingRate": 16000,
+	 "samplingRate": 16000,
         "nfft": 512,
         "winLength": 32,
         "window": "hamming",
         "shuffle":true
     },
+
     "valConfig":{
 	"wavPath":"../datadrive/ljspeech/wavs/",
 	"revPath":"../datadrive/ljspeech/revWavs/",

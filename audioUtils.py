@@ -9,7 +9,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from librosa import display
 from PIL import Image
-import PIL
+import soundfile as sf
 
 def diceCoef(prediction, target, smooth=1.):
     p=prediction.contiguous()
@@ -41,9 +41,15 @@ def tensorToImage(tensor):
 
     
 def clipRevAudio(org, rev):
-    if np.nonzero(org)[0][0]<np.nonzero(rev)[0][0]:
-        return rev[np.nonzero(rev)[0][0]:]
-    return rev
+    nonzeroOrg=np.nonzero(org)[0][0]
+    nonzeroRev=np.nonzero(rev)[0][0]
+    if nonzeroOrg<nonzeroRev:
+        rev=rev[nonzeroRev:]
+
+    clipBar=org[:100].mean()
+    clipBar=np.argmax(rev>clipBar)
+    return rev[clipBar:]
+
 
 def saveSpectrogram(s, name):
     pylab.figure(figsize=(3,3))
@@ -53,7 +59,7 @@ def saveSpectrogram(s, name):
     pylab.savefig('{}.jpg'.format(name), bbox_inches=None, pad_inches=0)
     pylab.close()
 
-def reverbify(audio, rt60=0.6, roomDim=[10, 10, 8]):
+def reverbify(audio, targetFile, roomDim, rt60, sr):
 
     """
     This function uses Sabine's formula to estimate the reverberation time.
@@ -63,7 +69,7 @@ def reverbify(audio, rt60=0.6, roomDim=[10, 10, 8]):
     :param roomDim: lxbxh dimension of room
     :return: reverbed audio
     """
-    orgAudio, _= librosa.load(audio, 22050)
+    orgAudio, _= librosa.load(audio, sr)
 
 
     energyAbsorption, maxOrder=pra.inverse_sabine(rt60, roomDim)
@@ -81,8 +87,7 @@ def reverbify(audio, rt60=0.6, roomDim=[10, 10, 8]):
 
     revAudio=room.mic_array.signals[0]
     revAudio=clipRevAudio(orgAudio, revAudio)
-
-    return revAudio
+    sf.write(targetFile, revAudio, sr)
 
 
 
