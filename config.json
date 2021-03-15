@@ -5,7 +5,7 @@
       "lr": 6e-4,
       "batchSize": 6,
       "device": "cuda",
-      "bceWeight": 0.45,
+      "bceWeight": 0.5,
       "saveEvery": 500,
       "checkpointPath": "../datadrive/checkpoints/diceBCE2.5k"
     },

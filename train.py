@@ -32,7 +32,7 @@ def validate(net, valLoader, device):
 
     net.train()
     return tot/len(valLoader)
-    return 0
+
 
 def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bceWeight,dataConfig, **valConfig):
     writer=SummaryWriter()
@@ -43,8 +43,8 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
     net=UNet(1, 1)
     if not finetune:
         net.cuda()
-    optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
-    criterion = nn.BCELoss()
+    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
+    criterion = nn.MSELoss()
     scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     globalStep=0
     if finetune:
@@ -64,9 +64,9 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
-                bceLoss=criterion(genSpecs, orgSpecs)
+                mseLoss=criterion(genSpecs, orgSpecs)
                 diceLoss=diceCoef(genSpecs, orgSpecs)
-                loss=bceLoss*bceWeight+diceLoss*(1-bceWeight)
+                loss=mseLoss*bceWeight+diceLoss*(1-bceWeight)
                 epochLoss+=loss.item()
                 writer.add_scalar('train loss', loss.item(), globalStep)
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
