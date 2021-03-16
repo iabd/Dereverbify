@@ -13,7 +13,7 @@
         "wavPath": "../datadrive/theWitcher/wavs/",
         "revPath": "../datadrive/theWitcher/revWavs/",
 	 "samplingRate": 16000,
-        "nfft": 512,
+        "nfft": 1024,
         "winLength": 32,
         "window": "hamming",
         "shuffle":true
