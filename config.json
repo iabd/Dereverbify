@@ -32,16 +32,18 @@
     },
 
   "trainLossConfig": {
-    "l1": 1.0,
-    "l2": 0.2,
-    "bce": 0.4,
-    "dice": 0
+    "l1": 0.1,
+    "l2": 0.1,
+    "bce": 0.1,
+    "dice": 0,
+    "ssim": 1.0
   },
 
   "valLossConfig": {
-    "l1": 0,
+    "l1": 0.2,
     "l2": 0.3,
     "bce": 0.2,
-    "dice": 0.5
+    "dice": 0.5,
+    "ssim": 0.5
   }
 }

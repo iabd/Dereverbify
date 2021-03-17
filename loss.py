@@ -1,5 +1,5 @@
 import torch.nn as nn
-from utils import DiceCoef
+from utils import DiceCoef, SSIM
 
 class MixLoss:
     """
@@ -25,15 +25,13 @@ class MixLoss:
             "l2":nn.MSELoss(),
             "bce":nn.BCELoss(),
             "dice":DiceCoef(),
+            "ssim":SSIM(),
         }
 
 
     def __call__(self, outputs, targets):
         overallLoss=0.0
-        numAppliedLosses=0
         for loss, multiplier in self.lossDict.items():
             if multiplier !=0:
                 overallLoss+=self.functions[loss](outputs, targets)*multiplier
-                numAppliedLosses+=1
-
         return overallLoss

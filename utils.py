@@ -10,6 +10,40 @@ import matplotlib.pyplot as plt
 from librosa import display
 from PIL import Image
 import soundfile as sf
+from skimage import metrics
+
+class SSIM():
+    # def __init__(self):
+    #     self.ssims=0
+    def __call__(self, prediction, target):
+        ssims=0.
+        p=prediction.contiguous().detach().numpy()
+        t=target.contiguous().detach().numpy()
+        for idx, batch in enumerate(p):
+            range_=batch.max()-batch.min()
+            ssims+=metrics.structural_similarity(batch[0], t[idx][0], data_range=range_)
+        return ssims/(idx+1)
+
+
+from skimage import metrics
+def SSIM(tensor1, tensor2):
+    ssims = 0.0
+    tensor1 = tensor1.contiguous().detach().numpy()
+    tensor2 = tensor2.contiguous().detach().numpy()
+    for idx, batch in enumerate(tensor1):
+        range_ = tensor1.max() - tensor1[idx].min()
+        ssims += metrics.structural_similarity(batch[0], tensor2[idx][0], data_range=range_)
+    return ssims / (idx + 1)
+
+
+def SSIM(tensor1, tensor2):
+    ssims=0.0
+    tensor1=tensor1.contiguous().detach().numpy()
+    tensor2=tensor2.contiguous().detach().numpy()
+    for idx, batch in enumerate(tensor1):
+        range_=tensor2.max()-tensor2[idx].min()
+        ssims+=metrics.structural_similarity(batch[0], tensor2[idx][0], data_range=range_)
+    return ssims/(idx+1)
 
 def countParams(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
