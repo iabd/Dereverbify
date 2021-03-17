@@ -1,17 +1,19 @@
 {
     "trainConfig": {
-      "epochs": 100,
-      "finetune" : true,
+      "epochs": 1000,
+      "finetune" : false,
       "lr": 6e-4,
       "batchSize": 6,
-      "device": "cuda",
-      "bceWeight": 0.5,
+      "device": "cpu",
       "saveEvery": 500,
+      "unetType": "small",
       "checkpointPath": "../datadrive/checkpoints/diceBCE2.5k"
     },
+
+
     "dataConfig": {
-        "wavPath": "../datadrive/theWitcher/wavs/",
-        "revPath": "../datadrive/theWitcher/revWavs/",
+        "wavPath": "../datadrive/ljspeech/wavs/",
+        "revPath": "../datadrive/ljspeech/revWavs/",
 	 "samplingRate": 16000,
         "nfft": 1024,
         "winLength": 32,
@@ -20,13 +22,26 @@
     },
 
     "valConfig":{
-	"wavPath":"../datadrive/ljspeech/wavs/",
-	"revPath":"../datadrive/ljspeech/revWavs/",
-	"segmentLength": 10000,
-	"samplingRate": 16000,
-	"nfft": 512,
-	"winLength": 32,
-	"window": "hamming",
-	"shuffle":true
-    }
+      "wavPath":"../datadrive/ljspeech/wavs/",
+      "revPath":"../datadrive/ljspeech/revWavs/",
+      "samplingRate": 16000,
+      "nfft": 512,
+      "winLength": 32,
+      "window": "hamming",
+      "shuffle":true
+    },
+
+  "trainLossConfig": {
+    "l1": 1,
+    "l2": 0,
+    "bce": 0,
+    "dice": 0
+  },
+
+  "valLossConfig": {
+    "l1": 0,
+    "l2": 0,
+    "bce": 0,
+    "dice": 1
+  }
 }

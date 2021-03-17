@@ -1,5 +1,5 @@
 import os, random, argparse, librosa
-from audioUtils import reverbify
+from utils import reverbify
 from tqdm.contrib.concurrent import process_map
 
 if __name__=="__main__":

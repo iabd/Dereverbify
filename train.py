@@ -1,21 +1,17 @@
-import argparse, json, torch, os, pdb
+import argparse, json, torch, pdb
 from dataset import TrainDataset
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import torch.optim as optim
-import torch.nn.functional as F
-from unet import UNet
 import torch.nn as nn
 from tqdm import tqdm
 import logging
 from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
-from audioUtils import tensorToImage, diceCoef
+from loss import MixLoss
+from utils import countParams
 
-
-
-def validate(net, valLoader, device):
+def validate(net, valLoader, device, valCriterion):
     tot=0
-    
     with tqdm(total=100, desc='Validation round', unit='batch', leave=False) as pbar:
         for idx, batch in enumerate(islice(valLoader, 100)):
             
@@ -24,9 +20,7 @@ def validate(net, valLoader, device):
 
             with torch.no_grad():
                 pred=net(revSpecs)
-
-            #tot+=F.binary_cross_entropy(pred, orgSpecs)
-            tot+=diceCoef(pred, orgSpecs)
+            tot+=valCriterion(pred, orgSpecs)
 
             pbar.update()
 
@@ -34,17 +28,23 @@ def validate(net, valLoader, device):
     return tot/len(valLoader)
 
 
-def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bceWeight,dataConfig, **valConfig):
+def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, unetType,dataConfig, valConfig, trainLossConfig, valLossConfig):
     writer=SummaryWriter()
     trainData=TrainDataset(**dataConfig)
     valData=TrainDataset(**valConfig)
     trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=False, num_workers=4)
     valLoader=DataLoader(valData, batch_size=batchSize, shuffle=False, num_workers=4)
-    net=UNet(1, 1)
-    if not finetune:
+    if unetType=="small":
+        from unet import UNet
+        net=UNet(1, 1)
+    else:
+        from unet2 import UNet
+        net=UNet(1,1)
+    if not finetune and device=="cuda":
         net.cuda()
-    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
-    criterion = nn.MSELoss()
+    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
+    trainCriterion=MixLoss(trainLossConfig)
+    valCriterion=MixLoss(valLossConfig)
     scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     globalStep=0
     if finetune:
@@ -54,6 +54,9 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
         net.cuda()
         optimizer.load_state_dict(checkpoint['optimizerStateDict'])
 
+
+    params=countParams(net)
+    print("Initializing training with {} params.".format(params))
         
     for epoch in range(epochs):
         net.train()
@@ -64,9 +67,10 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
-                mseLoss=criterion(genSpecs, orgSpecs)
-                diceLoss=diceCoef(genSpecs, orgSpecs)
-                loss=mseLoss*bceWeight+diceLoss*(1-bceWeight)
+                # mseLoss=criterion(genSpecs, orgSpecs)
+                # diceLoss=diceCoef(genSpecs, orgSpecs)
+                # loss=mseLoss*bceWeight+diceLoss*(1-bceWeight)
+                loss=trainCriterion(genSpecs, orgSpecs)
                 epochLoss+=loss.item()
                 writer.add_scalar('train loss', loss.item(), globalStep)
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
@@ -77,14 +81,13 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
                 globalStep+=1
 
                 if (idx+1)%saveEvery==0:
-                    pdb.set_trace()
                     print("saving model ..")
                     torch.save({
                         'epoch': epoch,
                         'modelStateDict': net.state_dict(),
                         'optimizerStateDict': optimizer.state_dict(),
                         'loss': loss,
-                    }, 'checkpoint.pt')
+                    }, '{}Checkpoint.pt'.format(unetType))
                     
                 
                     for tag, value in net.named_parameters():
@@ -93,10 +96,10 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, bce
                         if value.grad is not None:
                             writer.add_histogram('grads/'+tag, value.grad.data.cpu().numpy(), globalStep)
 
-                    valScore=validate(net, valLoader, device)
+                    valScore=validate(net, valLoader, device, valCriterion)
                     scheduler.step(valScore)
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
-                    logging.info('Validation cross entropy: {}'.format(valScore))
+                    logging.info('Validation Score: {}'.format(valScore))
                     writer.add_scalar('Dice/test', valScore, globalStep)
                     #image=tensorToImage(orgSpecs[0][0])
                     #writer.add_images('Target Specs', image, globalStep)
@@ -115,5 +118,6 @@ if __name__=="__main__":
     trainConfig=config["trainConfig"]
     dataConfig=config["dataConfig"]
     valConfig=config["valConfig"]
+    
     numGPUs=torch.cuda.device_count()
-    train(dataConfig=dataConfig, **trainConfig, **valConfig)
+    train(**trainConfig, dataConfig=dataConfig,  valConfig=valConfig, trainLossConfig=config["trainLossConfig"], valLossConfig=config["valLossConfig"])

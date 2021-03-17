@@ -1,7 +1,7 @@
 import os, librosa
 from glob import glob
 import numpy as np
-from audioUtils import saveSpectrogram, fetchProgress
+from utils import saveSpectrogram, fetchProgress
 from tqdm import tqdm
 
 
