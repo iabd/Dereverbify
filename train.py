@@ -63,7 +63,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
         epochLoss=0
 
         with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", leave=False) as pbar:
-            for idx, batch in enumerate(islice(trainLoader, 2011)):
+            for idx, batch in enumerate(trainLoader):
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
