@@ -11,13 +11,14 @@ class MixLoss:
             "l2":0.3,
             "bce":0.4,
             "dice":0.2,
-    "ssim":1
+    "ssim":1,
+"nll":1
         }
 
     """
     def __init__(self, lossDict):
         assert type(lossDict) is dict, breakpoint()
-        assert list(lossDict.keys()) <= ['l1', 'l2', 'bce', 'dice', 'ssim'], "lossDict should have keys that match ['l1', 'l2', 'bce', 'dice', 'ssim']"
+        assert list(lossDict.keys()) <= ['l1', 'l2', 'bce', 'dice', 'ssim', 'nll'], "lossDict should have keys that match ['l1', 'l2', 'bce', 'dice', 'ssim', 'nll]"
 
         self.lossDict=lossDict
         self.functions={
@@ -26,6 +27,7 @@ class MixLoss:
             "bce":nn.BCELoss(),
             "dice":DiceCoef(),
             "ssim":SSIM(),
+            "nll":nn.NLLLoss()
         }
 
 

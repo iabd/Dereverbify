@@ -2,10 +2,10 @@
     "trainConfig": {
       "epochs": 1000,
       "finetune" : true,
-      "lr": 6e-4,
+      "lr": 7e-5,
       "batchSize": 8,
       "device": "cuda",
-      "saveEvery": 1000,
+      "saveEvery": 500,
       "unetType": "small",
       "checkpointPath": "smallCheckpoint.pt"
     },
@@ -32,11 +32,12 @@
     },
 
   "trainLossConfig": {
-    "l1": 0.1,
-    "l2": 0.1,
+    "l1": 0,
+    "l2": 0,
     "bce": 0.1,
     "dice": 0,
-    "ssim": 1.0
+      "ssim": 1.0,
+      "nll":0
   },
 
   "valLossConfig": {
@@ -44,6 +45,7 @@
     "l2": 0.3,
     "bce": 0.2,
     "dice": 0.5,
-    "ssim": 0.5
+      "ssim": 0.5,
+      "nll":0
   }
 }
