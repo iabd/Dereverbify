@@ -1,43 +1,67 @@
 {
     "trainConfig": {
       "epochs": 1000,
-      "finetune" : true,
+      "finetune" : false,
       "lr": 7e-5,
-      "batchSize": 8,
-      "device": "cuda",
-      "saveEvery": 500,
+      "batchSize": 2,
+      "device": "cpu",
+      "saveEvery": 1,
       "unetType": "small",
       "checkpointPath": "smallCheckpoint.pt"
     },
 
 
-    "dataConfig": {
+  "dataConfig": {
+    "train": {
         "wavPath": "../datadrive/ljspeech/wavs/",
         "revPath": "../datadrive/ljspeech/revWavs/",
-	 "samplingRate": 16000,
-        "nfft": 1024,
-        "winLength": 32,
-        "window": "hamming",
-        "shuffle":true
+	    "samplingRate": 16000,
+        "shuffle":true,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":1024,
+        "win_length":32
+
+        }
     },
 
-    "valConfig":{
+    "validation":{
       "wavPath":"../datadrive/random/anechoic/",
       "revPath":"../datadrive/random/reverbed/",
       "samplingRate": 16000,
-      "nfft": 1024,
-      "winLength": 32,
-      "window": "hamming",
-      "shuffle":true
-    },
+      "shuffle":true,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":1024,
+        "win_length":32
+
+        }
+    }
+  },
+
+  "testParams":{
+    "path":"test/",
+    "samplingRate": 16000,
+    "batchSize": 4,
+    "device": "cpu",
+
+    "stftParams":{
+      "window":"hamming",
+      "n_fft":1024,
+      "win_length":32
+
+      }
+  },
 
   "trainLossConfig": {
     "l1": 0,
     "l2": 0,
     "bce": 0.1,
     "dice": 0,
-      "ssim": 1.0,
-      "nll":0
+    "ssim": 1.0,
+    "nll":0
   },
 
   "valLossConfig": {
@@ -45,7 +69,7 @@
     "l2": 0.3,
     "bce": 0.2,
     "dice": 0.5,
-      "ssim": 0.5,
-      "nll":0
+    "ssim": 0.5,
+    "nll":0
   }
 }

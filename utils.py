@@ -4,13 +4,34 @@ import librosa
 import pyroomacoustics as pra
 from matplotlib import cm
 import numpy as np
-import pylab, os, torch
+import pylab, torch
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from librosa import display
 from PIL import Image
 import soundfile as sf
 from skimage import metrics
+
+
+def reconstructAudioFromBatches(magB, phaseB, istftParams=None):
+    audio=[]
+    for idx, batchM in enumerate(magB):
+        try:
+            tempAudio=librosa.istft(polarToComplex(batchM.numpy()[0], phaseB[idx].numpy()[0]), **istftParams)
+        except:
+            tempAudio = librosa.istft(polarToComplex(batchM[0], phaseB[idx][0]), **istftParams)
+
+
+        audio.extend(tempAudio)
+    return audio
+
+def complexToPolar(com):
+    mag=np.abs(com)
+    phase=np.angle(com, deg=False) # in radians
+    return mag, phase
+def polarToComplex(mag, phase):
+    imag=np.cos(phase)+1j*np.sin(phase)
+    return mag*imag
 
 class SSIM():
     def __call__(self, prediction, target):

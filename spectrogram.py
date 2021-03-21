@@ -1,7 +1,7 @@
-import os, librosa
+import os, librosa, torch
 from glob import glob
 import numpy as np
-from utils import saveSpectrogram, fetchProgress
+from utils import saveSpectrogram, fetchProgress, polarToComplex, complexToPolar
 from tqdm import tqdm
 
 
@@ -19,25 +19,12 @@ class Spectrogram:
     def __len__(self):
         return len(self.ids)
 
-
-    @classmethod
-    def polarToComplex(cls, mag, phase):
-        imag=np.cos(phase)+1j*np.sin(phase)
-        return mag*imag
-
-    @classmethod
-    def complexToPolar(cls, stftMatrix):
-        mag=np.abs(stftMatrix)
-        phase=np.angle(stftMatrix, deg=True)
-        return mag, phase
-
-
     def polarToAudio(self, mag, phase):
 
         if not mag.shape==phase.shape:
             phase=phase[:mag.shape[0], :mag.shape[1]]
 
-        spectrum=self.polarToComplex(mag, phase)
+        spectrum=polarToComplex(mag, phase)
         audio=librosa.istft(spectrum, win_length=32, window='hamming')
         return audio
 

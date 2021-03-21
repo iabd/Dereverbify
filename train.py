@@ -1,5 +1,7 @@
-import argparse, json, torch, pdb
-from dataset import TrainDataset
+import argparse, json, torch, pdb, librosa, os
+from glob import glob
+import numpy as np
+from dataset import TrainDataset, TestDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
@@ -10,10 +12,30 @@ from torch.utils.tensorboard import SummaryWriter
 from loss import MixLoss
 from utils import countParams
 
+def testIterations(model, path, samplingRate, batchSize, device, stftParams):
+    model.to(device)
+    model.eval()
+    generatedAudios=[]
+    filelist=[i for i in os.listdir(path) if not i.startswith('.')]
+    for idx, file in enumerate(filelist):
+        wavpath=glob(path+file)[0]
+        dset=TestDataset(wavpath, samplingRate, stftParams)
+        inp=dset()
+        datapoints=inp.shape[0]
+        for i in range(0, datapoints, batchSize):
+            print("\nGenerating Audio {}/{}:  Progress... {}/{}".format(idx+1, len(filelist), i, datapoints))
+            if i==0:
+                output=model(torch.from_numpy(inp[i:i+batchSize]))
+            else:
+                output=torch.cat((output, model(torch.from_numpy(inp[i:i+batchSize]))))
+        generatedAudios.append(dset.reconstructAudio(output.detach().numpy()))
+    return generatedAudios
+
+
 def validate(net, valLoader, device, valCriterion):
     tot=0
     with tqdm(total=100, desc='Validation round', unit='batch', leave=False) as pbar:
-        for idx, batch in enumerate(islice(valLoader, 100)):
+        for idx, batch in enumerate(islice(valLoader, 2)):
             
             revSpecs=batch[1].to(device=device, dtype=torch.float32)
             orgSpecs=batch[0].to(device=device, dtype=torch.float32)
@@ -28,12 +50,13 @@ def validate(net, valLoader, device, valCriterion):
     return tot/len(valLoader)
 
 
-def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, unetType,dataConfig, valConfig, trainLossConfig, valLossConfig):
+def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, unetType,dataConfig, trainLossConfig, valLossConfig, testParams):
     writer=SummaryWriter()
-    trainData=TrainDataset(**dataConfig)
-    valData=TrainDataset(**valConfig)
-    trainLoader=DataLoader(trainData, batch_size=batchSize, shuffle=False, num_workers=4)
-    valLoader=DataLoader(valData, batch_size=batchSize, shuffle=False, num_workers=4)
+    trainData=TrainDataset(**dataConfig['train'])
+    originalSound, _=librosa.load('LJ050-0084.wav', sr=16000)
+    valData=TrainDataset(**dataConfig['validation'])
+    trainLoader=DataLoader(trainData, batch_size=batchSize,  num_workers=4)
+    valLoader=DataLoader(valData, batch_size=batchSize, num_workers=4)
     if unetType=="small":
         from unet import UNet
         net=UNet(1, 1)
@@ -67,9 +90,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                 orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                 revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                 genSpecs=net(revdSpecs)
-                # mseLoss=criterion(genSpecs, orgSpecs)
-                # diceLoss=diceCoef(genSpecs, orgSpecs)
-                # loss=mseLoss*bceWeight+diceLoss*(1-bceWeight)
+
                 loss=trainCriterion(genSpecs, orgSpecs)
                 epochLoss+=loss.item()
                 writer.add_scalar('train loss', loss.item(), globalStep)
@@ -101,9 +122,15 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
                     logging.info('Validation Score: {}'.format(valScore))
                     writer.add_scalar('Dice/test', valScore, globalStep)
-                    #image=tensorToImage(orgSpecs[0][0])
-                    #writer.add_images('Target Specs', image, globalStep)
-                    #writer.add_images('Generated Specs', tensorToImage(genSpecs[0][0]), globalStep)
+                    writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
+                    print("Generating audios .. ")
+                    genAudios=testIterations(net, **testParams)
+                    
+                    for ii, aud in enumerate(genAudios):
+                        writer.add_audio('Generated Audio {}'.format(ii), aud, global_step=globalStep, sample_rate=1600)
+
+
+                    ## TODO : Add spectrogram images to writer
 
     writer.close()
 
@@ -117,7 +144,4 @@ if __name__=="__main__":
     config=json.loads(data)
     trainConfig=config["trainConfig"]
     dataConfig=config["dataConfig"]
-    valConfig=config["valConfig"]
-    
-    numGPUs=torch.cuda.device_count()
-    train(**trainConfig, dataConfig=dataConfig,  valConfig=valConfig, trainLossConfig=config["trainLossConfig"], valLossConfig=config["valLossConfig"])
+    train(**trainConfig, dataConfig=dataConfig, trainLossConfig=config["trainLossConfig"], valLossConfig=config["valLossConfig"], testParams=config["testParams"])
