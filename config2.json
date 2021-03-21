@@ -5,7 +5,7 @@
       "lr": 7e-4,
       "batchSize": 8,
       "device": "cuda",
-      "saveEvery": 500,
+      "saveEvery": 1,
       "unetType": "small",
       "checkpointPath": "14kBCEDice.pt"
     },

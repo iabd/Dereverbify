@@ -13,7 +13,7 @@ from loss import MixLoss
 from utils import countParams
 
 def testIterations(model, path, samplingRate, batchSize, device, stftParams):
-    model.to(device)
+   # model.to(device)
     model.eval()
     generatedAudios=[]
     filelist=[i for i in os.listdir(path) if not i.startswith('.')]
@@ -24,18 +24,20 @@ def testIterations(model, path, samplingRate, batchSize, device, stftParams):
         datapoints=inp.shape[0]
         for i in range(0, datapoints, batchSize):
             print("\nGenerating Audio {}/{}:  Progress... {}/{}".format(idx+1, len(filelist), i, datapoints))
+  #          pdb.set_trace()
             if i==0:
-                output=model(torch.from_numpy(inp[i:i+batchSize]))
+                output=model(torch.from_numpy(inp[i:i+batchSize]).cuda())
             else:
-                output=torch.cat((output, model(torch.from_numpy(inp[i:i+batchSize]))))
+                output=torch.cat((output, model(torch.from_numpy(inp[i:i+batchSize]).cuda())))
         generatedAudios.append(dset.reconstructAudio(output.detach().numpy()))
+    model.train()
     return generatedAudios
 
 
 def validate(net, valLoader, device, valCriterion):
     tot=0
     with tqdm(total=100, desc='Validation round', unit='batch', leave=False) as pbar:
-        for idx, batch in enumerate(islice(valLoader, 2)):
+        for idx, batch in enumerate(valLoader):
             
             revSpecs=batch[1].to(device=device, dtype=torch.float32)
             orgSpecs=batch[0].to(device=device, dtype=torch.float32)
@@ -45,7 +47,9 @@ def validate(net, valLoader, device, valCriterion):
             tot+=valCriterion(pred, orgSpecs)
 
             pbar.update()
-
+            if idx==100:
+                break
+    
     net.train()
     return tot/len(valLoader)
 
@@ -68,7 +72,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
     trainCriterion=MixLoss(trainLossConfig)
     valCriterion=MixLoss(valLossConfig)
-    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
+    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)
     globalStep=0
     if finetune:
         print("LOADING CHECKPOINT __")
@@ -122,12 +126,12 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
                     logging.info('Validation Score: {}'.format(valScore))
                     writer.add_scalar('Dice/test', valScore, globalStep)
-                    writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
-                    print("Generating audios .. ")
-                    genAudios=testIterations(net, **testParams)
+                    #writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
+                    #print("Generating audios .. ")
+                    #genAudios=testIterations(net, **testParams)
                     
-                    for ii, aud in enumerate(genAudios):
-                        writer.add_audio('Generated Audio {}'.format(ii), aud, global_step=globalStep, sample_rate=1600)
+                    #for ii, aud in enumerate(genAudios):
+                    #    writer.add_audio('Generated Audio {}'.format(ii), aud, global_step=globalStep, sample_rate=1600)
 
 
                     ## TODO : Add spectrogram images to writer
