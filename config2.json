@@ -3,11 +3,11 @@
       "epochs": 1000,
       "finetune" : true,
       "lr": 7e-4,
-      "batchSize": 8,
+      "batchSize": 1,
       "device": "cuda",
       "saveEvery": 1,
       "unetType": "small",
-      "checkpointPath": "14kBCEDice.pt"
+      "checkpointPath":"smallCheckpoint.pt"
     },
 
 
@@ -45,7 +45,7 @@
     "path":"test/",
     "samplingRate": 16000,
     "batchSize": 1,
-    "device": "cpu",
+    "device": "cuda",
 
     "stftParams":{
       "window":"hamming",

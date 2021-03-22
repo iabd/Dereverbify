@@ -1,20 +1,20 @@
 {
     "trainConfig": {
       "epochs": 1000,
-      "finetune" : true,
+      "finetune" :false,
       "lr": 7e-4,
-      "batchSize": 8,
+      "batchSize": 3,
       "device": "cuda",
-      "saveEvery": 500,
+      "saveEvery": 1000,
       "unetType": "small",
-      "checkpointPath": "14kBCEDice.pt"
+      "checkpointPath": "newExpsmallCheckpoint.pt"
     },
 
 
   "dataConfig": {
     "train": {
-        "wavPath": "../datadrive/ljspeech/wavs/",
-        "revPath": "../datadrive/ljspeech/revWavs/",
+        "wavPath": "../datadrive/ljwitcher/wavs/",
+        "revPath": "../datadrive/ljwitcher/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
 
@@ -44,8 +44,8 @@
   "testParams":{
     "path":"test/",
     "samplingRate": 16000,
-    "batchSize": 1,
-    "device": "cpu",
+    "batchSize": 6,
+    "device": "cuda",
 
     "stftParams":{
       "window":"hamming",
@@ -57,19 +57,19 @@
 
   "trainLossConfig": {
       "l1": 0,
-      "l2": 0,
-      "bce": 0.5,
-      "dice": 0.5,
+      "l2": 0.3,
+      "bce": 0.4,
+      "dice": 0.3,
       "ssim": 0,
       "nll":0
   },
 
   "valLossConfig": {
     "l1": 0,
-    "l2": 0,
-    "bce": 0.2,
+    "l2": 0.3,
+    "bce": 0.3,
     "dice":0.3,
-    "ssim":0.7,
+    "ssim":0.3,
     "nll":0
   }
 }

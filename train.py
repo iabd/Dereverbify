@@ -12,25 +12,26 @@ from torch.utils.tensorboard import SummaryWriter
 from loss import MixLoss
 from utils import countParams
 
-def testIterations(model, path, samplingRate, batchSize, device, stftParams):
+def testIterations(net, path, samplingRate, batchSize, device, stftParams):
    # model.to(device)
-    model.eval()
+    net.eval()
     generatedAudios=[]
     filelist=[i for i in os.listdir(path) if not i.startswith('.')]
     for idx, file in enumerate(filelist):
         wavpath=glob(path+file)[0]
         dset=TestDataset(wavpath, samplingRate, stftParams)
-        inp=dset()
+        inp=torch.from_numpy(dset()).to(device=device, dtype=torch.float32)
         datapoints=inp.shape[0]
         for i in range(0, datapoints, batchSize):
             print("\nGenerating Audio {}/{}:  Progress... {}/{}".format(idx+1, len(filelist), i, datapoints))
-  #          pdb.set_trace()
-            if i==0:
-                output=model(torch.from_numpy(inp[i:i+batchSize]).cuda())
-            else:
-                output=torch.cat((output, model(torch.from_numpy(inp[i:i+batchSize]).cuda())))
-        generatedAudios.append(dset.reconstructAudio(output.detach().numpy()))
-    model.train()
+            with torch.no_grad():
+                if i==0:
+                    output=net(inp[i:i+batchSize])
+                else:
+                    output=torch.cat((output, inp[i:i+batchSize]))
+                    
+        generatedAudios.append(dset.reconstructAudio(output.cpu().detach().numpy()))
+    net.train()
     return generatedAudios
 
 
@@ -79,7 +80,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
         checkpoint=torch.load(checkpointPath, map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
-        optimizer.load_state_dict(checkpoint['optimizerStateDict'])
+        #optimizer.load_state_dict(checkpoint['optimizerStateDict'])
 
 
     params=countParams(net)
@@ -112,7 +113,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                         'modelStateDict': net.state_dict(),
                         'optimizerStateDict': optimizer.state_dict(),
                         'loss': loss,
-                    }, '{}Checkpoint.pt'.format(unetType))
+                    }, 'newExp{}Checkpoint.pt'.format(unetType))
                     
                 
                     for tag, value in net.named_parameters():
@@ -126,12 +127,12 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                     writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
                     logging.info('Validation Score: {}'.format(valScore))
                     writer.add_scalar('Dice/test', valScore, globalStep)
-                    #writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
-                    #print("Generating audios .. ")
-                    #genAudios=testIterations(net, **testParams)
+                    writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
+                    print("Generating audios .. ")
+                    genAudios=testIterations(net, **testParams)
                     
-                    #for ii, aud in enumerate(genAudios):
-                    #    writer.add_audio('Generated Audio {}'.format(ii), aud, global_step=globalStep, sample_rate=1600)
+                    for ii, aud in enumerate(genAudios):
+                        writer.add_audio('Generated Audio {}'.format(ii), np.asarray(aud), global_step=globalStep, sample_rate=1600)
 
 
                     ## TODO : Add spectrogram images to writer
