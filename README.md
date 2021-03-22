@@ -1,1 +1,1 @@
-# Voice-Dereverberation-GAN
+# Voice Dereverberation using CNNs
