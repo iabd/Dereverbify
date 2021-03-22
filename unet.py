@@ -71,7 +71,7 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, nChannels, nClasses):
+    def __init__(self, nChannels, nClasses, dropout=0.5):
         super(UNet, self).__init__()
         self.nChannels = nChannels
         self.nClasses = nClasses
@@ -79,7 +79,7 @@ class UNet(nn.Module):
             nn.ConvTranspose2d(in_channels=64, out_channels=3, kernel_size=5, stride=2),
             nn.Tanh()
         )
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(dropout)
         self.inc = CBL(nChannels, 16)
         self.down1 = Downsample(16, 32)
         self.down2 = Downsample(32, 64)
@@ -102,9 +102,11 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
         x6 = self.down5(x5)
         x = self.up1(x6, x5)
+        x=self.dropout(x)
         x = self.up2(x, x4)
         x = self.dropout(x)
         x = self.up3(x, x3)
+        x=self.dropout(x)
         x = self.up4(x, x2)
         x = self.dropout(x)
         x = self.up5(x, x1)
