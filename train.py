@@ -73,7 +73,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
     trainCriterion=MixLoss(trainLossConfig)
     valCriterion=MixLoss(valLossConfig)
-    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)
+    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     globalStep=0
     if finetune:
         print("LOADING CHECKPOINT __")

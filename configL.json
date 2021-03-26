@@ -1,0 +1,75 @@
+{
+    "trainConfig": {
+      "epochs": 1000,
+	"finetune" :false,
+      "lr": 6e-4,
+      "batchSize": 1,
+      "device": "cuda",
+      "saveEvery": 1000,
+      "unetType": "large",
+      "checkpointPath": "newExplargeCheckpoint.pt"
+    },
+
+
+  "dataConfig": {
+    "train": {
+        "wavPath": "../datadrive/vctk/wavs/",
+        "revPath": "../datadrive/vctk/revWavs/",
+	    "samplingRate": 16000,
+        "shuffle":true,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":512,
+        "win_length":32
+
+        }
+    },
+
+    "validation":{
+      "wavPath":"../datadrive/ljwitcher/wavs/",
+      "revPath":"../datadrive/ljwitcher/revWavs/",
+      "samplingRate": 16000,
+      "shuffle":true,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":512,
+        "win_length":32
+
+        }
+    }
+  },
+
+  "testParams":{
+    "path":"test/",
+    "samplingRate": 16000,
+    "batchSize": 6,
+    "device": "cuda",
+
+    "stftParams":{
+      "window":"hamming",
+      "n_fft":512,
+      "win_length":32
+
+      }
+  },
+
+  "trainLossConfig": {
+      "l1": 0.2,
+      "l2": 0,
+      "bce": 1,
+      "dice": 0,
+      "ssim": 0,
+      "nll":0
+  },
+
+  "valLossConfig": {
+    "l1": 0.2,
+    "l2": 0,
+    "bce": 1,
+    "dice":0,
+    "ssim":0,
+    "nll":0
+  }
+}

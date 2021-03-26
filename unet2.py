@@ -70,7 +70,7 @@ class UNet(nn.Module):
         self.nClasses = nClasses
         self.DCT = nn.Sequential(
             nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=2, stride=2),
-            nn.Tanh()
+            nn.Sigmoid()
         )
 
         self.dropout = nn.Dropout(0.5)
