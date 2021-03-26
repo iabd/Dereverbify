@@ -61,17 +61,20 @@ class Downsample(nn.Module):
 
 
 class OutConv(nn.Module):
-    def __init__(self, inChannels, outChannels):
+    def __init__(self, inChannels, outChannels, activation="tanh"):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(inChannels, outChannels, kernel_size=1)
-        self.sigm = nn.Sigmoid()
-
+        if activation="tanh":
+            self.activation=nn.Tanh()
+        else:
+            self.activation = nn.Sigmoid()
+        
     def forward(self, input_):
-        return self.sigm(self.conv(input_))
+        return self.activation(self.conv(input_))
 
 
 class UNet(nn.Module):
-    def __init__(self, nChannels, nClasses, dropout=0.5):
+    def __init__(self, nChannels, nClasses, dropout=0.5, activation="tanh"):
         super(UNet, self).__init__()
         self.nChannels = nChannels
         self.nClasses = nClasses
@@ -92,7 +95,7 @@ class UNet(nn.Module):
         self.up3 = Upsample(128, 64)
         self.up4 = Upsample(64, 32)
         self.up5 = Upsample(32, 16)
-        self.up6 = OutConv(16, nClasses)
+        self.up6 = OutConv(16, nClasses, activation)
 
     def forward(self, x_):
         x1 = self.inc(x_)

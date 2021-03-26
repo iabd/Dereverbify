@@ -3,7 +3,8 @@
       "epochs": 1000,
 	"finetune" :false,
       "lr": 6e-4,
-      "batchSize": 1,
+	"batchSize": 1,
+	"activation":"tanh",
       "device": "cuda",
       "saveEvery": 1000,
       "unetType": "large",
@@ -17,6 +18,7 @@
         "revPath": "../datadrive/vctk/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
+	"normalization":"-1+1",
 
       "stftParams":{
         "window":"hamming",
@@ -30,7 +32,8 @@
       "wavPath":"../datadrive/ljwitcher/wavs/",
       "revPath":"../datadrive/ljwitcher/revWavs/",
       "samplingRate": 16000,
-      "shuffle":true,
+	"shuffle":true,
+	"normalization":"-1+1",
 
       "stftParams":{
         "window":"hamming",
@@ -56,9 +59,10 @@
   },
 
   "trainLossConfig": {
-      "l1": 0.2,
-      "l2": 0,
-      "bce": 1,
+      "l1": 0,
+      "l2": 0.2,
+      "bce":0,
+      "bceL": 1,
       "dice": 0,
       "ssim": 0,
       "nll":0
@@ -67,7 +71,8 @@
   "valLossConfig": {
     "l1": 0.2,
     "l2": 0,
-    "bce": 1,
+      "bce": 0,
+      "bceL":0,
     "dice":0,
     "ssim":0,
     "nll":0

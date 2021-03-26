@@ -1,20 +1,19 @@
 from glob import glob
 from os import listdir
 import numpy as np
-from itertools import chain
-from sklearn import preprocessing
+from itertools import chain, cycle
 import librosa, torch, random
 from torch.utils.data import IterableDataset, Dataset
 from utils import polarToComplex, complexToPolar
 
 class TrainDataset(IterableDataset):
-    def __init__(self, wavPath, revPath, samplingRate, stftParams, shuffle=True, normalization="-1+1"):
+    def __init__(self, wavPath, revPath, samplingRate, stftParams, shuffle=True):
         self.sr = samplingRate
         self.stftParams=stftParams
         self.wavPath = wavPath
         self.revPath = revPath
-        self.normalization=normalization
         self.ids = [i for i in listdir(revPath) if not i.startswith('.')]
+
         if shuffle:
             random.shuffle(self.ids)
 
@@ -22,13 +21,7 @@ class TrainDataset(IterableDataset):
         return len(self.ids)
 
     def transform(self, X):
-        if self.normalization=="0+1":
-            return preprocessing.normalize(X)
-        elif self.normalization=="-1+1":
-            X=2*(X-X.min())/(X.max()-X.min())
-            return X-1
-        else:
-            raise NotImplementedError(self.__class__.transform)
+        return (X - X.min()) / (X.max() - X.min())
 
     def squaredChunks(self, spec):
         n = self.stftParams['n_fft'] // 2
@@ -41,19 +34,19 @@ class TrainDataset(IterableDataset):
         rev = glob(self.revPath + idx)[0]
         org, _ = librosa.load(org, sr=self.sr)
         rev, _ = librosa.load(rev, sr=self.sr)
-        org = librosa.power_to_db(np.abs(librosa.stft(org, **self.stftParams))[1:])
-        rev = librosa.power_to_db(np.abs(librosa.stft(rev, **self.stftParams))[1:])
-        orgArray = torch.FloatTensor(list(self.squaredChunks(self.transform(org))))
-        revArray = torch.FloatTensor(list(self.squaredChunks(self.transform(rev))))[:orgArray.shape[0]]
+
+        org = np.abs(librosa.stft(org, **self.stftParams))[1:]
+        rev = np.abs(librosa.stft(rev, **self.stftParams))[1:]
+        orgArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(org)))))
+        revArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(rev)))))[:orgArray.shape[0]]
         for i, v in enumerate(revArray):
-            yield (orgArray[i], v)
+            yield (orgArray[i] ** 2, v ** 2)
 
     def getStream(self, ids):
         yield from chain.from_iterable(map(self.getAudio, ids))
 
     def __iter__(self):
         return self.getStream(self.ids)
-
 
 
 class TestDataset(Dataset):
