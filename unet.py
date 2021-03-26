@@ -64,7 +64,7 @@ class OutConv(nn.Module):
     def __init__(self, inChannels, outChannels, activation="tanh"):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(inChannels, outChannels, kernel_size=1)
-        if activation="tanh":
+        if activation=="tanh":
             self.activation=nn.Tanh()
         else:
             self.activation = nn.Sigmoid()

@@ -64,14 +64,20 @@ class Downsample(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, nChannels, nClasses):
+    def __init__(self, nChannels, nClasses, activation="tanh"):
         super(UNet, self).__init__()
         self.nChannels = nChannels
         self.nClasses = nClasses
-        self.DCT = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=2, stride=2),
-            nn.Sigmoid()
-        )
+        if activation=="tanh":
+            self.DCT = nn.Sequential(
+                nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=2, stride=2),
+                nn.Sigmoid()
+            )
+        else:
+            self.DCT = nn.Sequential(
+                nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=2, stride=2),
+                nn.Tanh()
+            )
 
         self.dropout = nn.Dropout(0.5)
 
