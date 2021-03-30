@@ -84,7 +84,7 @@ class UNet(nn.Module):
             )
 
 
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(0.5)
         self.inc = ConvLayer(nChannels, 16, layerType="CL")
         self.down1 = Downsample(16, 32, layerType="CBL")
         self.down2 = Downsample(32, 64, layerType="CBL")

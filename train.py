@@ -1,16 +1,18 @@
 import argparse, json, torch, pdb, librosa, os
 from glob import glob
 import numpy as np
+from PIL import Image
 from dataset import TrainDataset, TestDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
 from tqdm import tqdm
 import logging
-from itertools import islice
+from utils import saveSpectrogram
 from torch.utils.tensorboard import SummaryWriter
 from loss import MixLoss
 from utils import countParams
+from torchvision import transforms
 
 def testIterations(net, path, samplingRate, batchSize, device, stftParams):
    # model.to(device)
@@ -23,7 +25,7 @@ def testIterations(net, path, samplingRate, batchSize, device, stftParams):
         inp=torch.from_numpy(dset()).to(device=device, dtype=torch.float32)
         datapoints=inp.shape[0]
         for i in range(0, datapoints, batchSize):
-            #print("\nGenerating Audio {}/{}:  Progress... {}/{}".format(idx+1, len(filelist), i, datapoints))
+            print("\nGenerating Audio {}/{}:  Progress... {}/{}".format(idx+1, len(filelist), i, datapoints), end="\r")
             with torch.no_grad():
                 if i==0:
                     output=net(inp[i:i+batchSize])
@@ -37,7 +39,7 @@ def testIterations(net, path, samplingRate, batchSize, device, stftParams):
 
 def validate(net, valLoader, device, valCriterion, valIterations):
     tot=0
-    with tqdm(total=100, desc='Validation round', unit='batch', leave=False) as pbar:
+    with tqdm(total=valIterations, desc='Validation round ', unit=' batch', leave=False) as pbar:
         for idx, batch in enumerate(valLoader):
             
             revSpecs=batch[1].to(device=device, dtype=torch.float32)
@@ -46,13 +48,13 @@ def validate(net, valLoader, device, valCriterion, valIterations):
             with torch.no_grad():
                 pred=net(revSpecs)
             tot+=valCriterion(pred, orgSpecs)
-
             pbar.update()
             if idx==valIterations:
+                saveSpectrogram(revSpecs[0][0].numpy(), pred[0][0].numpy())
                 break
     
     net.train()
-    return tot/100
+    return tot/valIterations
 
 
 def train(batchSize,lr, epochs, device, saveEvery, valEvery, checkpointPath, finetune, unetType, valIterations, activation, dataConfig, trainLossConfig, valLossConfig, testParams):
@@ -93,7 +95,6 @@ def train(batchSize,lr, epochs, device, saveEvery, valEvery, checkpointPath, fin
         with tqdm(total=1000, desc="Epoch {}/{} :".format(epoch+1, epochs), unit="audio", leave=False) as pbar:
             with tqdm(total=len(trainLoader), desc="training iteration", unit="batch", leave=False) as pbar2:
                 for idx, batch in enumerate(trainLoader):
-                #with tqdm(total=len(trainLoader), desc="Iteration {}/{}:".format(idx+1, len(trainLoader)), unit="batch",  leave=False) as pbar2:
                     orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                     revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                     genSpecs=net(revdSpecs)
@@ -128,7 +129,13 @@ def train(batchSize,lr, epochs, device, saveEvery, valEvery, checkpointPath, fin
                         scheduler.step(valScore)
                         writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
                         logging.info('Validation Score: {}'.format(valScore))
-                        writer.add_scalar('Dice/test', valScore, globalStep)
+                        writer.add_scalar('Validation score', valScore, globalStep)
+
+
+                        img_=transforms.ToTensor()(Image.open('tensorboardImage.jpg'))
+                        writer.add_image('Spectrogram', img_, global_step=globalStep)
+
+
                         writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
                         print("Generating audios .. ")
                         genAudios=testIterations(net, **testParams)
