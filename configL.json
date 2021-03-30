@@ -2,11 +2,12 @@
     "trainConfig": {
       "epochs": 1000,
 	"finetune" :false,
-      "lr": 6e-4,
-	"batchSize": 1,
+      "lr": 1e-4,
+	"batchSize": 3,
 	"activation":"tanh",
       "device": "cuda",
-      "saveEvery": 1000,
+	"saveEvery": 5000,
+	"valEvery":1000,
       "unetType": "large",
       "checkpointPath": "newExplargeCheckpoint.pt"
     },
@@ -60,20 +61,20 @@
 
   "trainLossConfig": {
       "l1": 0,
-      "l2": 0.2,
+      "l2": 1,
       "bce":0,
-      "bceL": 1,
+      "bceL": 0.1,
       "dice": 0,
       "ssim": 0,
       "nll":0
   },
 
   "valLossConfig": {
-    "l1": 0.2,
-    "l2": 0,
+    "l1": 0,
+    "l2": 0.4,
       "bce": 0,
-      "bceL":0,
-    "dice":0,
+      "bceL":0.2,
+      "dice":1,
     "ssim":0,
     "nll":0
   }

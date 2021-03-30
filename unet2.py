@@ -71,12 +71,12 @@ class UNet(nn.Module):
         if activation=="tanh":
             self.DCT = nn.Sequential(
                 nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=2, stride=2),
-                nn.Sigmoid()
+                nn.Tanh()
             )
         else:
             self.DCT = nn.Sequential(
                 nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=2, stride=2),
-                nn.Tanh()
+                nn.Sigmoid()
             )
 
         self.dropout = nn.Dropout(0.5)
