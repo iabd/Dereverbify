@@ -32,7 +32,7 @@ def testIterations(net, path, samplingRate, batchSize, device, stftParams):
                 else:
                     output=torch.cat((output, inp[i:i+batchSize]))
                     
-        generatedAudios.append(dset.reconstructAudio(output.cpu().detach().numpy()))
+        generatedAudios.extend(dset.reconstructAudio(output.cpu().detach().numpy()))
     net.train()
     return generatedAudios
 
@@ -50,7 +50,7 @@ def validate(net, valLoader, device, valCriterion, valIterations):
             tot+=valCriterion(pred, orgSpecs)
             pbar.update()
             if idx==valIterations:
-                saveSpectrogram(revSpecs[0][0].numpy(), pred[0][0].numpy())
+                saveSpectrogram(revSpecs[0][0].cpu().numpy(), pred[0][0].cpu().numpy())
                 break
     
     net.train()
@@ -75,14 +75,14 @@ def train(batchSize,lr, epochs, device, saveEvery, valEvery, checkpointPath, fin
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
     trainCriterion=MixLoss(trainLossConfig)
     valCriterion=MixLoss(valLossConfig)
-    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=6)
+    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3)
     globalStep=0
     if finetune:
         print("LOADING CHECKPOINT __")
         checkpoint=torch.load(checkpointPath, map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
-        #optimizer.load_state_dict(checkpoint['optimizerStateDict'])
+        optimizer.load_state_dict(checkpoint['optimizerStateDict'])
 
 
     params=countParams(net)
@@ -98,7 +98,7 @@ def train(batchSize,lr, epochs, device, saveEvery, valEvery, checkpointPath, fin
                     orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                     revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                     genSpecs=net(revdSpecs)
-
+                    #pdb.set_trace()
                     loss=trainCriterion(genSpecs, orgSpecs)
                     epochLoss+=loss.item()
                     writer.add_scalar('train loss', loss.item(), globalStep)
@@ -138,10 +138,10 @@ def train(batchSize,lr, epochs, device, saveEvery, valEvery, checkpointPath, fin
 
                         writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
                         print("Generating audios .. ")
-                        genAudios=testIterations(net, **testParams)
+                        genAudio=testIterations(net, **testParams)
                     
-                        for ii, aud in enumerate(genAudios):
-                            writer.add_audio('Generated Audio {}'.format(ii), np.asarray(aud), global_step=globalStep, sample_rate=1600)
+                        #for ii, aud in enumerate(genAudios):
+                        writer.add_audio('Generated Audio ', np.asarray(genAudio), global_step=globalStep, sample_rate=1600)
                     pbar2.update()
                 if idx==20000:
                     break

@@ -67,7 +67,7 @@ class Downsample(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, nChannels, nClasses, dropout=0.5, activation="tanh"):
+    def __init__(self, nChannels, nClasses, dropout=0.5, activation="sigmoid"):
         super(UNet, self).__init__()
         self.nChannels = nChannels
         self.nClasses = nClasses
@@ -84,7 +84,7 @@ class UNet(nn.Module):
             )
 
 
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.2)
         self.inc = ConvLayer(nChannels, 16, layerType="CL")
         self.down1 = Downsample(16, 32, layerType="CBL")
         self.down2 = Downsample(32, 64, layerType="CBL")
@@ -108,13 +108,13 @@ class UNet(nn.Module):
         x5 = self.down4(x4) # 256x16x16
         x6 = self.down5(x5) # 512x8x8
         x = self.up1(x6, x5) # 256x16x16
-        x=self.dropout(x)
+        #x=self.dropout(x)
         x = self.up2(x, x4) # 128x32x32
-        x = self.dropout(x)
+        #x = self.dropout(x)
         x = self.up3(x, x3) # 64x64x64
-        x=self.dropout(x)
+        #x=self.dropout(x)
         x = self.up4(x, x2) # 32x128x128
-        x = self.dropout(x)
+        #x = self.dropout(x)
         x = self.up5(x, x1) # 16x256x256
         output = self.DCT(x)
         return output

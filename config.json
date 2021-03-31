@@ -2,24 +2,25 @@
     "trainConfig": {
       "epochs": 1000,
       "finetune" :false,
-      "lr": 7e-4,
+      "lr": 1e-4,
 	"batchSize": 3,
-	"activation": "tanh",
+	"activation": "sigmoid",
       "device": "cuda",
 	"saveEvery": 5000,
 	"valEvery":1000,
 	"unetType": "small",
-	"valIterations":500,
+	"valIterations":100,
       "checkpointPath": "newExpsmallCheckpoint.pt"
     },
 
 
   "dataConfig": {
     "train": {
-        "wavPath": "../datadrive/vctk/wavs/",
-        "revPath": "../datadrive/vctk/revWavs/",
+        "wavPath": "../datadrive/ljwitcher/wavs/",
+        "revPath": "../datadrive/ljwitcher/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
+	"normalization":"0+1",
 
       "stftParams":{
         "window":"hamming",
@@ -30,10 +31,11 @@
     },
 
     "validation":{
-      "wavPath":"../datadrive/ljwitcher/wavs/",
-      "revPath":"../datadrive/ljwitcher/revWavs/",
+      "wavPath":"../datadrive/vctk/wavs/",
+      "revPath":"../datadrive/vctk/revWavs/",
       "samplingRate": 16000,
 	"shuffle":true,
+	"normalization":"0+1",
 
       "stftParams":{
         "window":"hamming",
@@ -60,19 +62,23 @@
 
   "trainLossConfig": {
       "l1": 0,
-      "l2": 0.3,
-      "bceL": 0.4,
-      "bce":0,
-      "dice": 0.3,
+      "l2": 0,
+      "huber":1,
+      "bce": 0,
+      "bceL": 0,
+      
+      "dice": 0,
       "ssim": 0,
       "nll":0
   },
 
   "valLossConfig": {
     "l1": 0,
-    "l2": 0.3,
-      "bceL": 0.3,
-      "bce":0,
+      "l2": 0.3,
+      "huber":1,
+      "bce":0.3,
+      "bceL": 0,
+      
     "dice":0.3,
     "ssim":0.3,
     "nll":0

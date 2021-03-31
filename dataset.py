@@ -23,7 +23,8 @@ class TrainDataset(IterableDataset):
 
     def transform(self, X):
         if self.normalization=="0+1":
-            return preprocessing.normalize(X)
+            return (X-X.min())/(X.max()-X.min())
+            #return preprocessing.normalize(X)
         elif self.normalization=="-1+1":
             X=2*(X-X.min())/(X.max()-X.min())
             return X-1
