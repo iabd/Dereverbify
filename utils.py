@@ -100,15 +100,12 @@ def clipRevAudio(org, rev):
     return rev[clipBar:]
 
 
-def saveSpectrogram(s1, s2):
-    pylab.figure(figsize=(8,3))
+def saveSpectrogram(s, name):
+    pylab.figure(figsize=(3,3))
     pylab.axis('off')
     pylab.axes([0., 0., 1., 1.], frameon=False, xticks=[], yticks=[]) # Remove the white edge
-    plt.subplot(1, 2, 1)
-    librosa.display.specshow(s1, y_axis='hz', x_axis='time', cmap=cm.jet)
-    plt.subplot(1, 2, 2)
-    librosa.display.specshow(s2, y_axis='hz', x_axis='time', cmap=cm.jet)
-    pylab.savefig('tensorboardImage.jpg', bbox_inches=None, pad_inches=0)
+    librosa.display.specshow(s, y_axis='hz', x_axis='time', cmap=cm.jet)
+    pylab.savefig('{}.jpg'.format(name), bbox_inches=None, pad_inches=0)
     pylab.close()
 
 def reverbify(audio, targetFile, roomDim, rt60, sr):
