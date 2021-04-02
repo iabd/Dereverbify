@@ -7,6 +7,9 @@ import torch.optim as optim
 import torch.nn as nn
 from tqdm import tqdm
 import logging
+from utils import saveSpectrogram
+from torchvision import transforms
+from PIL import Image
 from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
 from loss import MixLoss
@@ -49,10 +52,11 @@ def validate(net, valLoader, device, valCriterion):
 
             pbar.update()
             if idx==100:
+                saveSpectrogram(revSpecs[0][0].cpu().numpy(), pred[0][0].cpu().numpy())
                 break
     
     net.train()
-    return tot/len(valLoader)
+    return tot/100
 
 
 def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, unetType,dataConfig, trainLossConfig, valLossConfig, testParams):
@@ -91,52 +95,55 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
         epochLoss=0
 
         with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", leave=False) as pbar:
-            for idx, batch in enumerate(trainLoader):
-                orgSpecs = batch[0].to(device=device, dtype=torch.float32)
-                revdSpecs=batch[1].to(device=device, dtype=torch.float32)
-                genSpecs=net(revdSpecs)
+            with tqdm(total=len(trainLoader), desc="training iterations", unit="batch", leave=False) as pbar2:
+                for idx, batch in enumerate(trainLoader):
+                    orgSpecs = batch[0].to(device=device, dtype=torch.float32)
+                    revdSpecs=batch[1].to(device=device, dtype=torch.float32)
+                    genSpecs=net(revdSpecs)
 
-                loss=trainCriterion(genSpecs, orgSpecs)
-                epochLoss+=loss.item()
-                writer.add_scalar('train loss', loss.item(), globalStep)
-                pbar.set_postfix(**{'loss (batch)': loss.item()})
-                optimizer.zero_grad()
-                loss.backward()
-                nn.utils.clip_grad_value_(net.parameters(), 0.1)
-                optimizer.step()
-                globalStep+=1
+                    loss=trainCriterion(genSpecs, orgSpecs)
+                    epochLoss+=loss.item()
+                    writer.add_scalar('train loss', loss.item(), globalStep)
+                    pbar.set_postfix(**{'loss (batch)': loss.item()})
+                    optimizer.zero_grad()
+                    loss.backward()
+                    #nn.utils.clip_grad_value_(net.parameters(), 0.1)
+                    optimizer.step()
+                    globalStep+=1
 
-                if (idx+1)%saveEvery==0:
-                    print("saving model ..")
-                    torch.save({
-                        'epoch': epoch,
-                        'modelStateDict': net.state_dict(),
-                        'optimizerStateDict': optimizer.state_dict(),
-                        'loss': loss,
-                    }, 'newExp{}Checkpoint.pt'.format(unetType))
+                    if (idx+1)%saveEvery==0:
+                        print("saving model ..")
+                        torch.save({
+                            'epoch': epoch,
+                            'modelStateDict': net.state_dict(),
+                            'optimizerStateDict': optimizer.state_dict(),
+                            'loss': loss,
+                        }, 'newExp{}Checkpoint.pt'.format(unetType))
                     
-                
-                    for tag, value in net.named_parameters():
-                        tag=tag.replace(".", "/")
-                        writer.add_histogram('weights/'+tag, value.data.cpu().numpy(), globalStep)
-                        if value.grad is not None:
-                            writer.add_histogram('grads/'+tag, value.grad.data.cpu().numpy(), globalStep)
+                    if (idx+1)%500==0:
+                        for tag, value in net.named_parameters():
+                            tag=tag.replace(".", "/")
+                            writer.add_histogram('weights/'+tag, value.data.cpu().numpy(), globalStep)
+                            if value.grad is not None:
+                                writer.add_histogram('grads/'+tag, value.grad.data.cpu().numpy(), globalStep)
 
-                    valScore=validate(net, valLoader, device, valCriterion)
-                    scheduler.step(valScore)
-                    writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
-                    logging.info('Validation Score: {}'.format(valScore))
-                    writer.add_scalar('Dice/test', valScore, globalStep)
-                    writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
-                    print("Generating audios .. ")
-                    genAudios=testIterations(net, **testParams)
+                        valScore=validate(net, valLoader, device, valCriterion)
+                        scheduler.step(valScore)
+                        writer.add_scalar('learning rate', optimizer.param_groups[0]['lr'], globalStep)
+
+                        img_=transforms.ToTensor()(Image.open('tensorboardImage.jpg'))
+                        writer.add_image('Spectrogram', img_, global_step=globalStep)
+                        
+                        logging.info('Validation Score: {}'.format(valScore))
+                        writer.add_scalar('Dice/test', valScore, globalStep)
+                        writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
+                        #print("Generating audios .. ")
+                        #genAudios=testIterations(net, **testParams)
                     
-                    for ii, aud in enumerate(genAudios):
-                        writer.add_audio('Generated Audio {}'.format(ii), np.asarray(aud), global_step=globalStep, sample_rate=1600)
+                        #for ii, aud in enumerate(genAudios):
+                        #writer.add_audio('Generated Audio {}'.format(ii), np.asarray(aud), global_step=globalStep, sample_rate=1600)
 
-
-                    ## TODO : Add spectrogram images to writer
-
+                    pbar2.update()
     writer.close()
 
 
