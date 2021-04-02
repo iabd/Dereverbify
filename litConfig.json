@@ -1,0 +1,41 @@
+{
+  "batchSize": 16,
+  "numWorkers": 4,
+  "logDir": "checkpoints",
+  "netParams": {
+    "lr": 1e-3,
+    "inChannels": 1,
+    "outChannels": 1,
+    "dropout": 0.2
+  },
+
+  "dataConfig": {
+    "train": {
+        "wavPath": "../datadrive/ljspeech/wavs/",
+        "revPath": "../datadrive/ljspeech/revWavs/",
+	    "samplingRate": 16000,
+        "shuffle":true,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":1024,
+        "win_length":32
+
+        }
+    },
+
+    "validation":{
+      "wavPath":"../datadrive/ljspeech/wavs/",
+      "revPath":"../datadrive/ljspeech/revWavs/",
+      "samplingRate": 16000,
+      "shuffle":true,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":1024,
+        "win_length":32
+
+        }
+    }
+  }
+}
