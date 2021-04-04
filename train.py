@@ -66,12 +66,10 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
     valData=TrainDataset(**dataConfig['validation'])
     trainLoader=DataLoader(trainData, batch_size=batchSize,  num_workers=4)
     valLoader=DataLoader(valData, batch_size=batchSize, num_workers=4)
-    if unetType=="small":
-        from unet import UNet
-        net=UNet(1, 1)
-    else:
-        from unet2 import UNet
-        net=UNet(1,1)
+
+    from unet import UNet
+    net=UNet(1, 1)
+
     if not finetune and device=="cuda":
         net.cuda()
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-8)
