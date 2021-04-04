@@ -66,9 +66,9 @@
 
   "valLossConfig": {
     "l1": 0,
-    "l2": 0.5,
+    "l2": 0.3,
     "bce": 0.5,
-    "dice":0,
+    "dice":0.3,
     "ssim":0,
     "nll":0
   }
