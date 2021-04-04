@@ -2,26 +2,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class Attention(nn.Module):
     def __init__(self, channelUp, channelDown):
         super(Attention, self).__init__()
-        self.deconv = nn.ConvTranspose2d(channelDown, channelUp, kernel_size=1, stride=1)
-        if channelUp / 2 == channelDown:
-            self.conv1 = lambda a: a
-        else:
-            self.conv1 = nn.Conv2d(channelUp, channelUp, kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(channelUp, 1, kernel_size=1, stride=1)
+        self.interShape=int((channelUp+channelDown)/2)
+        self.deconv1 = nn.ConvTranspose2d(channelDown, self.interShape, kernel_size=1, stride=1)
+        self.conv1 = nn.Conv2d(channelUp, self.interShape, kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(self.interShape, 1, kernel_size=1, stride=1)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
+        self.deconv2=nn.ConvTranspose2d(self.interShape, channelUp, kernel_size=2, stride=2)
+        self.bn=nn.BatchNorm2d(num_features=channelUp)
+        self.interpolate=lambda a: a.repeat((1, self.interShape, 1, 1))
 
     def forward(self, x, g):
-        addition = self.deconv(g) + self.conv1(x)
+        x=self.conv1(x)
+        addition = self.deconv1(g) + x
         addition = self.relu(addition)
         addition = self.conv2(addition)
         attention = self.sigmoid(addition)
-        attention = F.interpolate(addition.unsqueeze(0), size=x[0].shape, mode='trilinear').squeeze(0)
-        return x.mul(attention)
+        attention=self.interpolate(attention)
+        x = x.mul(attention)
+        x = self.deconv2(x)
+        return self.bn(x)
 
 
 class CBL(nn.Module):
