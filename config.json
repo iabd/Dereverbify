@@ -5,7 +5,7 @@
       "lr": 1e-4,
       "batchSize": 3,
       "device": "cuda",
-      "saveEvery": 1000,
+      "saveEvery": 3000,
       "unetType": "small",
       "checkpointPath": "newExpsmallCheckpoint.pt"
     },
