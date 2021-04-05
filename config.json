@@ -1,9 +1,9 @@
 {
     "trainConfig": {
       "epochs": 1000,
-      "finetune" :false,
+      "finetune" :true,
       "lr": 1e-4,
-      "batchSize": 1,
+      "batchSize": 3,
       "device": "cuda",
       "saveEvery": 5000,
       "unetType": "small",
@@ -13,8 +13,8 @@
 
   "dataConfig": {
     "train": {
-        "wavPath": "../datadrive/ljspeech/wavs/",
-        "revPath": "../datadrive/ljspeech/revWavs/",
+        "wavPath": "../datadrive/ljwitcher/wavs/",
+        "revPath": "../datadrive/ljwitcher/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
 
@@ -27,8 +27,8 @@
     },
 
     "validation":{
-      "wavPath":"../datadrive/ljspeech/wavs/",
-      "revPath":"../datadrive/ljspeech/revWavs/",
+      "wavPath":"../datadrive/vctk/wavs/",
+      "revPath":"../datadrive/vctk/revWavs/",
       "samplingRate": 16000,
       "shuffle":true,
 
