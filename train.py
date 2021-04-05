@@ -79,7 +79,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
         checkpoint=torch.load(checkpointPath, map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
-        optimizer.load_state_dict(checkpoint['optimizerStateDict'])
+        #optimizer.load_state_dict(checkpoint['optimizerStateDict'])
 
 
     params=countParams(net)
@@ -113,7 +113,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                             'modelStateDict': net.state_dict(),
                             'optimizerStateDict': optimizer.state_dict(),
                             'loss': loss,
-                        }, 'newExp{}Checkpoint.pt'.format(unetType))
+                        }, 'allAttentionGates_{}.pt'.format(idx))
                     
                     if (idx+1)%500==0:
                         for tag, value in net.named_parameters():

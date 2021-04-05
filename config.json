@@ -1,11 +1,11 @@
 {
     "trainConfig": {
       "epochs": 1000,
-      "finetune" :true,
+      "finetune" :false,
       "lr": 1e-4,
       "batchSize": 3,
       "device": "cuda",
-      "saveEvery": 5000,
+      "saveEvery": 1000,
       "unetType": "small",
       "checkpointPath": "newExpsmallCheckpoint.pt"
     },
@@ -13,8 +13,8 @@
 
   "dataConfig": {
     "train": {
-        "wavPath": "../datadrive/ljwitcher/wavs/",
-        "revPath": "../datadrive/ljwitcher/revWavs/",
+        "wavPath": "../datadrive/vctk/wavs/",
+        "revPath": "../datadrive/vctk/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
 
@@ -27,8 +27,8 @@
     },
 
     "validation":{
-      "wavPath":"../datadrive/vctk/wavs/",
-      "revPath":"../datadrive/vctk/revWavs/",
+      "wavPath":"../datadrive/ljwitcher/wavs/",
+      "revPath":"../datadrive/ljwitcher/revWavs/",
       "samplingRate": 16000,
       "shuffle":true,
 
@@ -57,9 +57,9 @@
 
   "trainLossConfig": {
       "l1": 0,
-      "l2": 0.5,
-      "bce": 0.5,
-      "dice": 0,
+      "l2": 0.2,
+      "bce": 1,
+      "dice": 0.4,
       "ssim": 0,
       "nll":0
   },
