@@ -95,7 +95,7 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, nChannels, nClasses, dropout=0.5):
+    def __init__(self, nChannels, nClasses, dropout=0.3):
         super(UNet, self).__init__()
         self.nChannels = nChannels
         self.nClasses = nClasses
@@ -131,14 +131,14 @@ class UNet(nn.Module):
         x4 = self.down3(x3) #128x32x32
         x5 = self.down4(x4) #256x16x16
         x6 = self.down5(x5) #512x8x8
-        x = self.up1(x6, self.attention5(x5, x6)) #256
+        x = self.up1(x6, self.attention5(x5, x6)) #256x16x16
         #x=self.up2(x, x4)
-        x = self.up2(x, self.attention4(x4, x5)) #128
+        x = self.up2(x, self.attention4(x4, x5)) #128x32x32
         #x=self.up3(x, x3)
-        x = self.up3(x, self.attention3(x3, x4)) #64
+        x = self.up3(x, self.attention3(x3, x4)) #64x64x64
         #x=self.up4(x, x2)
         #x=self.up5(x, x1)
-        x = self.up4(x, self.attention2(x2, x3)) #32
-        x = self.up5(x, self.attention1(x1, x2)) #16
+        x = self.dropout(self.up4(x, self.attention2(x2, x3))) #32x128x128
+        x = self.dropout(self.up5(x, self.attention1(x1, x2))) #16x256x256
         output = self.up6(x) #1
         return output
