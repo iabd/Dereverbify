@@ -69,7 +69,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
 
     if not finetune and device=="cuda":
         net.cuda()
-    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-4)
+    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-6)
     trainCriterion=MixLoss(trainLossConfig)
     valCriterion=MixLoss(valLossConfig)
     scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)
