@@ -38,12 +38,6 @@ class CBL(nn.Module):
             nn.Conv2d(in_channels=inChannels, out_channels=midChannels, kernel_size=5, padding=2),
             nn.BatchNorm2d(num_features=midChannels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
-
-            # The original U-net paper used two layers of CBL
-
-            # nn.Conv2d(in_channels=midChannels, out_channels=outChannels, kernel_size=5, padding=2),
-            # nn.BatchNorm2d(num_features=outChannels),
-            # nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
     def forward(self, input_):
@@ -116,6 +110,10 @@ class UNet(nn.Module):
         self.attention4=Attention(128, 256)
         self.down5 = Downsample(256, 512)
         self.attention5=Attention(256, 512)
+        self.down6=Downsample(512, 1024)
+        self.attention6=Attention(512, 1024)
+        
+        self.up0=Upsample(1024, 512)
         self.up1 = Upsample(512, 256)
         self.up2 = Upsample(256, 128)
         self.up3 = Upsample(128, 64)
@@ -123,22 +121,22 @@ class UNet(nn.Module):
         self.up5 = Upsample(32, 16)
         self.up6 = OutConv(16, nClasses)
 
-    def forward(self, x_):
+    def forward(self, x):
         # C H W 1x256x256
-        x1 = self.inc(x_) #16x256x256
+        x1 = self.inc(x) #16x256x256
         x2 = self.down1(x1) #32x128x128
         x3 = self.down2(x2) #64x64x64
         x4 = self.down3(x3) #128x32x32
         x5 = self.down4(x4) #256x16x16
         x6 = self.down5(x5) #512x8x8
-        x = self.up1(x6, self.attention5(x5, x6)) #256x16x16
-        #x=self.up2(x, x4)
+        x7 = self.down6(x6) #1024x4x4
+        
+        x=self.up0(x7, self.attention6(x6, x7)) #512x8x8
+        x = self.up1(x, self.attention5(x5, x6)) #256x16x16
         x = self.up2(x, self.attention4(x4, x5)) #128x32x32
-        #x=self.up3(x, x3)
         x = self.up3(x, self.attention3(x3, x4)) #64x64x64
-        #x=self.up4(x, x2)
-        #x=self.up5(x, x1)
         x = self.dropout(self.up4(x, self.attention2(x2, x3))) #32x128x128
         x = self.dropout(self.up5(x, self.attention1(x1, x2))) #16x256x256
         output = self.up6(x) #1
         return output
+
