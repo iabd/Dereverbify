@@ -1,20 +1,20 @@
 {
     "trainConfig": {
+      "driveDir": "/content/gdrive/My Drive/Research/Dereverbify",
       "epochs": 1000,
-      "finetune" :false,
+      "finetune" :true,
       "lr": 1e-4,
       "batchSize": 3,
       "device": "cuda",
-      "saveEvery": 3000,
-      "unetType": "small",
-      "checkpointPath": "newExpsmallCheckpoint.pt"
+      "saveEvery": 5000,
+      "checkpointPath": "/content/gdrive/My Drive/Research/Dereverbify/allAttentionGatesWithDropoutColab_14999.pt"
     },
 
 
   "dataConfig": {
     "train": {
-        "wavPath": "../datadrive/vctk/wavs/",
-        "revPath": "../datadrive/vctk/revWavs/",
+        "wavPath": "/content/gdrive/My Drive/Research/datadrive/ljspeech/wavs/",
+        "revPath": "/content/gdrive/My Drive/Research/datadrive/ljspeech/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
 
@@ -27,8 +27,8 @@
     },
 
     "validation":{
-      "wavPath":"../datadrive/ljwitcher/wavs/",
-      "revPath":"../datadrive/ljwitcher/revWavs/",
+      "wavPath":"/content/gdrive/My Drive/Research/datadrive/random/wavs/",
+      "revPath":"/content/gdrive/My Drive/Research/datadrive/random/revWavs/",
       "samplingRate": 16000,
       "shuffle":true,
 

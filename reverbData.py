@@ -25,7 +25,7 @@ if __name__=="__main__":
             rt60Values.append(random.uniform(0.3, 1.8))
             samplingRate.append(args.sr)
 
-    r=process_map(reverbify, *(datafiles, targetfiles, roomDims, rt60Values, samplingRate), max_workers=args.workers)
+    r=process_map(reverbify, *(datafiles, targetfiles, roomDims, rt60Values, samplingRate), max_workers=args.workers, chunksize=2)
 
     print("DONE!!!")
 

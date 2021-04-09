@@ -14,31 +14,9 @@ from torch.utils.tensorboard import SummaryWriter
 from loss import MixLoss
 from utils import countParams
 
-def testIterations(net, path, samplingRate, batchSize, device, stftParams):
-    net.eval()
-    generatedAudios=[]
-    filelist=[i for i in os.listdir(path) if not i.startswith('.')]
-    for idx, file in enumerate(filelist):
-        wavpath=glob(path+file)[0]
-        dset=TestDataset(wavpath, samplingRate, stftParams)
-        inp=torch.from_numpy(dset()).to(device=device, dtype=torch.float32)
-        datapoints=inp.shape[0]
-        for i in range(0, datapoints, batchSize):
-            print("\nGenerating Audio {}/{}:  Progress... {}/{}".format(idx+1, len(filelist), i, datapoints))
-            with torch.no_grad():
-                if i==0:
-                    output=net(inp[i:i+batchSize])
-                else:
-                    output=torch.cat((output, inp[i:i+batchSize]))
-                    
-        generatedAudios.append(dset.reconstructAudio(output.cpu().detach().numpy()))
-    net.train()
-    return generatedAudios
-
-
 def validate(net, valLoader, device, valCriterion):
     tot=0
-    with tqdm(total=100, desc='Validation round', unit='batch', leave=False) as pbar:
+    with tqdm(total=100, desc='Validation round', unit='batch', position=3, leave=True) as pbar:
         for idx, batch in enumerate(valLoader):
             
             revSpecs=batch[1].to(device=device, dtype=torch.float32)
@@ -57,10 +35,9 @@ def validate(net, valLoader, device, valCriterion):
     return tot/100
 
 
-def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, unetType,dataConfig, trainLossConfig, valLossConfig, testParams):
-    writer=SummaryWriter()
+def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune,dataConfig, trainLossConfig, valLossConfig):
+    writer=SummaryWriter(os.path.join(driveDir, "runs"))
     trainData=TrainDataset(**dataConfig['train'])
-    originalSound, _=librosa.load('LJ050-0084.wav', sr=16000)
     valData=TrainDataset(**dataConfig['validation'])
     trainLoader=DataLoader(trainData, batch_size=batchSize,  num_workers=4)
     valLoader=DataLoader(valData, batch_size=batchSize, num_workers=4)
@@ -79,7 +56,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
         checkpoint=torch.load(checkpointPath, map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
-        #optimizer.load_state_dict(checkpoint['optimizerStateDict'])
+        optimizer.load_state_dict(checkpoint['optimizerStateDict'])
 
 
     params=countParams(net)
@@ -89,9 +66,11 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
         net.train()
         epochLoss=0
 
-        with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", leave=False) as pbar:
-            with tqdm(total=len(trainLoader), desc="training iterations", unit="batch", leave=False) as pbar2:
+        with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", position=0, leave=False) as pbar:
+            with tqdm(total=len(trainLoader), desc="training iterations", unit="batch", position=1, leave=True) as pbar2:
                 for idx, batch in enumerate(trainLoader):
+                    if idx==12001:
+                        break
                     orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                     revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                     genSpecs=net(revdSpecs)
@@ -113,7 +92,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                             'modelStateDict': net.state_dict(),
                             'optimizerStateDict': optimizer.state_dict(),
                             'loss': loss,
-                        }, 'allAttentionGatesWithDropout_{}.pt'.format(idx))
+                        }, os.path.join(driveDir, 'allAttentionGatesWithDropoutColabT_{}.pt'.format(idx)))
                     
                     if (idx+1)%500==0:
                         for tag, value in net.named_parameters():
@@ -131,7 +110,7 @@ def train(batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune, une
                         
                         logging.info('Validation Score: {}'.format(valScore))
                         writer.add_scalar('Dice/test', valScore, globalStep)
-                        writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
+                        #writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
 
 
                     pbar2.update()
@@ -147,4 +126,4 @@ if __name__=="__main__":
     config=json.loads(data)
     trainConfig=config["trainConfig"]
     dataConfig=config["dataConfig"]
-    train(**trainConfig, dataConfig=dataConfig, trainLossConfig=config["trainLossConfig"], valLossConfig=config["valLossConfig"], testParams=config["testParams"])
+    train(**trainConfig, dataConfig=dataConfig, trainLossConfig=config["trainLossConfig"], valLossConfig=config["valLossConfig"])

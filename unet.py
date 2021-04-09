@@ -132,11 +132,11 @@ class UNet(nn.Module):
         x7 = self.down6(x6) #1024x4x4
         
         x=self.up0(x7, self.attention6(x6, x7)) #512x8x8
-        x = self.up1(x, self.attention5(x5, x6)) #256x16x16
-        x = self.up2(x, self.attention4(x4, x5)) #128x32x32
-        x = self.up3(x, self.attention3(x3, x4)) #64x64x64
-        x = self.dropout(self.up4(x, self.attention2(x2, x3))) #32x128x128
-        x = self.dropout(self.up5(x, self.attention1(x1, x2))) #16x256x256
+        x = self.dropout(self.up1(x, self.attention5(x5, x6))) #256x16x16
+        x = self.dropout(self.up2(x, self.attention4(x4, x5))) #128x32x32
+        x = self.dropout(self.up3(x, self.attention3(x3, x4))) #64x64x64
+        x = self.up4(x, self.attention2(x2, x3)) #32x128x128
+        x = self.up5(x, self.attention1(x1, x2)) #16x256x256
         output = self.up6(x) #1
         return output
 
