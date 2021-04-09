@@ -1,10 +1,8 @@
-import argparse, json, torch, pdb, librosa, os
-from glob import glob
-import numpy as np
-from dataset import TrainDataset, TestDataset
+import argparse, json, torch, os
+from dataset import TrainDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import logging
 from utils import saveSpectrogram
 from torchvision import transforms
@@ -39,8 +37,8 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
     writer=SummaryWriter(os.path.join(driveDir, "runs"))
     trainData=TrainDataset(**dataConfig['train'])
     valData=TrainDataset(**dataConfig['validation'])
-    trainLoader=DataLoader(trainData, batch_size=batchSize,  num_workers=4)
-    valLoader=DataLoader(valData, batch_size=batchSize, num_workers=4)
+    trainLoader=DataLoader(trainData, batch_size=batchSize,  num_workers=2)
+    valLoader=DataLoader(valData, batch_size=batchSize, num_workers=2)
 
     net=UNet(1, 1)
 
@@ -58,15 +56,13 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
         net.cuda()
         optimizer.load_state_dict(checkpoint['optimizerStateDict'])
 
-
+    epoch=0
     params=countParams(net)
     print("Initializing training with {} params.".format(params))
-        
-    for epoch in range(epochs):
-        net.train()
-        epochLoss=0
-
-        with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch+1, epochs), unit="audio", position=0, leave=False) as pbar:
+    with tqdm(total=epochs, desc="Epoch {}/{}".format(epoch + 1, epochs), unit="audio", position=0,leave=True) as pbar:
+        for epoch in range(epochs):
+            net.train()
+            epochLoss=0
             with tqdm(total=len(trainLoader), desc="training iterations", unit="batch", position=1, leave=True) as pbar2:
                 for idx, batch in enumerate(trainLoader):
                     if idx==12001:
@@ -92,9 +88,17 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
                             'modelStateDict': net.state_dict(),
                             'optimizerStateDict': optimizer.state_dict(),
                             'loss': loss,
-                        }, os.path.join(driveDir, 'allAttentionGatesWithDropoutColabT_{}.pt'.format(idx)))
-                    
+                        }, os.path.join(driveDir, 'colabBatchSize1_{}.pt'.format(idx+1)))
+
                     if (idx+1)%500==0:
+                        print("saving model ..")
+                        torch.save({
+                            'epoch': epoch,
+                            'modelStateDict': net.state_dict(),
+                            'optimizerStateDict': optimizer.state_dict(),
+                            'loss': loss,
+                            'iteration':idx
+                        }, os.path.join(driveDir, '.colabBatchSize1'.format(idx)))
                         for tag, value in net.named_parameters():
                             tag=tag.replace(".", "/")
                             writer.add_histogram('weights/'+tag, value.data.cpu().numpy(), globalStep)
@@ -107,13 +111,15 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
 
                         img_=transforms.ToTensor()(Image.open('tensorboardImage.jpg'))
                         writer.add_image('Spectrogram', img_, global_step=globalStep)
-                        
+
                         logging.info('Validation Score: {}'.format(valScore))
                         writer.add_scalar('Dice/test', valScore, globalStep)
                         #writer.add_audio('Original Audio', originalSound, global_step=globalStep, sample_rate=16000)
 
 
                     pbar2.update()
+
+        pbar.update()
     writer.close()
 
 

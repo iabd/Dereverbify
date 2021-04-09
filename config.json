@@ -2,9 +2,9 @@
     "trainConfig": {
       "driveDir": "/content/gdrive/My Drive/Research/Dereverbify",
       "epochs": 1000,
-      "finetune" :true,
+      "finetune" :false,
       "lr": 1e-4,
-      "batchSize": 3,
+      "batchSize": 1,
       "device": "cuda",
       "saveEvery": 5000,
       "checkpointPath": "/content/gdrive/My Drive/Research/Dereverbify/allAttentionGatesWithDropoutColab_14999.pt"
