@@ -1,7 +1,6 @@
-import matplotlib
+import matplotlib, os
 matplotlib.use('Agg')
 import librosa
-import pyroomacoustics as pra
 from matplotlib import cm
 import numpy as np
 import pylab, torch
@@ -9,9 +8,20 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from librosa import display
 from PIL import Image
-import soundfile as sf
 from skimage import metrics
 
+
+def getFileList(dirName):
+    listOfFile = [i for i in os.listdir(dirName) if not i.startswith(".")]
+    allFiles = list()
+    for entry in listOfFile:
+        fullPath = os.path.join(dirName, entry)
+        if os.path.isdir(fullPath):
+            allFiles = allFiles + getFileList(fullPath)
+        else:
+            allFiles.append(fullPath)
+
+    return allFiles
 
 def reconstructAudioFromBatches(magB, phaseB, istftParams=None):
     audio=[]
@@ -100,7 +110,7 @@ def clipRevAudio(org, rev):
     return rev[clipBar:]
 
 
-def saveSpectrogram(s1, s2):
+def saveSpectrogram(s1, s2, name='tensorboardImage.jpg'):
     pylab.figure(figsize=(8,3))
     pylab.axis('off')
     pylab.axes([0., 0., 1., 1.], frameon=False, xticks=[], yticks=[]) # Remove the white edge                                                                                        
@@ -108,44 +118,11 @@ def saveSpectrogram(s1, s2):
     librosa.display.specshow(librosa.power_to_db(s1), y_axis='hz', x_axis='time', cmap=cm.jet)
     plt.subplot(1, 2, 2)
     librosa.display.specshow(librosa.power_to_db(s2), y_axis='hz', x_axis='time', cmap=cm.jet)
-    pylab.savefig('tensorboardImage.jpg', bbox_inches=None, pad_inches=0)
+    pylab.savefig(name, bbox_inches=None, pad_inches=0)
     pylab.close()
-
-    
-def reverbify(audio, targetFile, roomDim, rt60, sr):
-
-    """
-    This function uses Sabine's formula to estimate the reverberation time.
-
-    :param audio: audio file
-    :param rt60:  1s is optimum for a lecture hall, 2-2.25 for concert hall.
-    :param roomDim: lxbxh dimension of room
-    :return: reverbed audio
-    """
-    orgAudio, _= librosa.load(audio, sr)
-
-
-    energyAbsorption, maxOrder=pra.inverse_sabine(rt60, roomDim)
-    m = pra.Material(energy_absorption=energyAbsorption)
-    room = pra.ShoeBox(roomDim, fs=16000, materials=m, max_order=maxOrder)
-    room.add_source([2.5, 3.73, 1.76],signal=orgAudio, delay=0.4)
-
-    micLocation=np.c_[
-        [6.3, 4.87, 1.2],
-    ]
-    room.add_microphone_array(micLocation)
-
-    room.compute_rir()
-    room.simulate()
-
-    revAudio=room.mic_array.signals[0]
-    revAudio=clipRevAudio(orgAudio, revAudio)
-    sf.write(targetFile, revAudio, sr)
+    return name
 
 
 
-
-
-# reverbify('/Users/zombie/Downloads/LJSpeech-1.1/wavs/LJ001-0002.wav')
 
 

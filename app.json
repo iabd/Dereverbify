@@ -1,0 +1,6 @@
+{
+  "name": "Dereverbify",
+  "description": "Voice Dereveberation using Deep CNNs",
+  "repository": "https://github.com/iabd/Dereverbify",
+  "keywords": ["python", "pytorch", "flask", "deep learning"]
+}

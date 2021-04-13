@@ -1,9 +1,8 @@
-import argparse, json, torch, os
+import argparse, json, torch, os, logging, shutil, time
 from dataset import TrainDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm.notebook import tqdm
-import logging
 from utils import saveSpectrogram
 from torchvision import transforms
 from PIL import Image
@@ -14,7 +13,7 @@ from utils import countParams
 
 def validate(net, valLoader, device, valCriterion):
     tot=0
-    with tqdm(total=100, desc='Validation round', unit='batch', position=3, leave=True) as pbar:
+    with tqdm(total=100, desc='Validation round', unit='batch', position=3, leave=False) as pbar:
         for idx, batch in enumerate(valLoader):
             
             revSpecs=batch[1].to(device=device, dtype=torch.float32)
@@ -34,28 +33,27 @@ def validate(net, valLoader, device, valCriterion):
 
 
 def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, finetune,dataConfig, trainLossConfig, valLossConfig):
-    writer=SummaryWriter(os.path.join(driveDir, "runs"))
+    writer=SummaryWriter()
     trainData=TrainDataset(**dataConfig['train'])
     valData=TrainDataset(**dataConfig['validation'])
-    trainLoader=DataLoader(trainData, batch_size=batchSize,  num_workers=2)
+    trainLoader=DataLoader(trainData, batch_size=batchSize, num_workers=2)
     valLoader=DataLoader(valData, batch_size=batchSize, num_workers=2)
 
     net=UNet(1, 1)
 
     if not finetune and device=="cuda":
         net.cuda()
-    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=1e-6)
+    optimizer = optim.Adam(net.parameters(), lr=lr)
     trainCriterion=MixLoss(trainLossConfig)
     valCriterion=MixLoss(valLossConfig)
-    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)
+    scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3)
     globalStep=0
     if finetune:
-        print("LOADING CHECKPOINT __")
+        print("LOADING CHECKPOINT ")
         checkpoint=torch.load(checkpointPath, map_location='cpu')
         net.load_state_dict(checkpoint['modelStateDict'])
         net.cuda()
         optimizer.load_state_dict(checkpoint['optimizerStateDict'])
-
     epoch=0
     params=countParams(net)
     print("Initializing training with {} params.".format(params))
@@ -65,8 +63,6 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
             epochLoss=0
             with tqdm(total=len(trainLoader), desc="training iterations", unit="batch", position=1, leave=True) as pbar2:
                 for idx, batch in enumerate(trainLoader):
-                    if idx==12001:
-                        break
                     orgSpecs = batch[0].to(device=device, dtype=torch.float32)
                     revdSpecs=batch[1].to(device=device, dtype=torch.float32)
                     genSpecs=net(revdSpecs)
@@ -74,7 +70,7 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
                     loss=trainCriterion(genSpecs, orgSpecs)
                     epochLoss+=loss.item()
                     writer.add_scalar('train loss', loss.item(), globalStep)
-                    pbar.set_postfix(**{'loss (batch)': loss.item()})
+                    pbar2.set_postfix(**{'loss (batch)': loss.item()})
                     optimizer.zero_grad()
                     loss.backward()
                     #nn.utils.clip_grad_value_(net.parameters(), 0.1)
@@ -82,13 +78,17 @@ def train(driveDir, batchSize,lr, epochs, device, saveEvery, checkpointPath, fin
                     globalStep+=1
 
                     if (idx+1)%saveEvery==0:
+                        if os.path.exists(os.path.join(driveDir, "runs")):
+                            shutil.rmtree(os.path.join(driveDir, "runs"))
+                            time.sleep(1)
+                        shutil.copytree("runs", os.path.join(driveDir, "runs"))
                         print("saving model ..")
                         torch.save({
                             'epoch': epoch,
                             'modelStateDict': net.state_dict(),
                             'optimizerStateDict': optimizer.state_dict(),
                             'loss': loss,
-                        }, os.path.join(driveDir, 'colabBatchSize1_{}.pt'.format(idx+1)))
+                        }, os.path.join(driveDir, 'colabBatchSize{}_{}.pt'.format(batchSize, idx+1)))
 
                     if (idx+1)%500==0:
                         print("saving model ..")

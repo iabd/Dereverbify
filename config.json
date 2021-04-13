@@ -1,22 +1,23 @@
 {
     "trainConfig": {
       "driveDir": "/content/gdrive/My Drive/Research/Dereverbify",
-      "epochs": 1000,
-      "finetune" :false,
+      "epochs": 10,
+      "finetune" :true,
       "lr": 1e-4,
-      "batchSize": 1,
+      "batchSize": 16,
       "device": "cuda",
       "saveEvery": 5000,
-      "checkpointPath": "/content/gdrive/My Drive/Research/Dereverbify/allAttentionGatesWithDropoutColab_14999.pt"
+      "checkpointPath": "/content/gdrive/My Drive/Research/Dereverbify/colabBatchSize20_5000.pt"
     },
 
 
   "dataConfig": {
     "train": {
-        "wavPath": "/content/gdrive/My Drive/Research/datadrive/ljspeech/wavs/",
-        "revPath": "/content/gdrive/My Drive/Research/datadrive/ljspeech/revWavs/",
+        "wavPath": "/content/gdrive/My Drive/Research/datadrive/vctk/wavs/",
+        "revPath": "/content/gdrive/My Drive/Research/datadrive/vctk/revWavs/",
 	    "samplingRate": 16000,
         "shuffle":true,
+      "stftMaxWidth": 12000,
 
       "stftParams":{
         "window":"hamming",
@@ -31,6 +32,7 @@
       "revPath":"/content/gdrive/My Drive/Research/datadrive/random/revWavs/",
       "samplingRate": 16000,
       "shuffle":true,
+      "stftMaxWidth": 12000,
 
       "stftParams":{
         "window":"hamming",
@@ -54,6 +56,13 @@
 
       }
   },
+
+     "stftParams":{
+      "window":"hamming",
+      "n_fft":1024,
+      "win_length":32
+
+      },
 
   "trainLossConfig": {
       "l1": 0,
