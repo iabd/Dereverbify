@@ -1,36 +1,85 @@
 {
     "trainConfig": {
-        "epochs": 100000,
-        "lr": 1e-4,
-        "batchSize": 8,
-	"dataDir":"/Users/zombie/Downloads/LJSpeech-1.1/specs/",
-	"device": "cpu"
-    },
-    "data_config": {
-        "training_files": "train_files.txt",
-        "segment_length": 16000,
-        "sampling_rate": 22050,
-        "filter_length": 1024,
-        "hop_length": 256,
-        "win_length": 1024,
-        "mel_fmin": 0.0,
-        "mel_fmax": 8000.0
-    },
-    "dist_config": {
-        "dist_backend": "nccl",
-        "dist_url": "tcp://localhost:54321"
+      "driveDir": "/content/gdrive/My Drive/Research/Dereverbify",
+      "epochs": 10,
+      "model":"resunet",
+      "finetune" :false,
+      "lr": 1e-4,
+      "batchSize": 12,
+      "device": "cuda",
+      "saveEvery": 500,
+      "checkpointPath": "/content/gdrive/My Drive/Research/Dereverbify/colabBatchSize20_5000.pt"
     },
 
-    "waveglow_config": {
-        "n_mel_channels": 80,
-        "n_flows": 12,
-        "n_group": 8,
-        "n_early_every": 4,
-        "n_early_size": 2,
-        "WN_config": {
-            "n_layers": 8,
-            "n_channels": 256,
-            "kernel_size": 3
+
+  "dataConfig": {
+    "train": {
+        "wavPath": "/content/gdrive/My Drive/Research/datadrive/vctk/wavs/",
+        "revPath": "/content/gdrive/My Drive/Research/datadrive/vctk/revWavs/",
+	    "samplingRate": 16000,
+        "shuffle":true,
+      "stftMaxWidth": 12000,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":1024,
+        "win_length":32
+
+        }
+    },
+
+    "validation":{
+      "wavPath":"/content/gdrive/My Drive/Research/datadrive/Audio/random/wavs/",
+      "revPath":"/content/gdrive/My Drive/Research/datadrive/Audio/random/revWavs/",
+      "samplingRate": 16000,
+      "shuffle":true,
+      "stftMaxWidth": 12000,
+
+      "stftParams":{
+        "window":"hamming",
+        "n_fft":1024,
+        "win_length":32
+
         }
     }
+  },
+
+  "testParams":{
+    "path":"test/",
+    "samplingRate": 16000,
+    "batchSize": 6,
+    "device": "cuda",
+
+    "stftParams":{
+      "window":"hamming",
+      "n_fft":1024,
+      "win_length":32
+
+      }
+  },
+
+     "stftParams":{
+      "window":"hamming",
+      "n_fft":1024,
+      "win_length":32
+
+      },
+
+  "trainLossConfig": {
+      "l1": 0,
+      "l2": 0.2,
+      "bce": 1,
+      "dice": 0.4,
+      "ssim": 0,
+      "nll":0
+  },
+
+  "valLossConfig": {
+    "l1": 0,
+    "l2": 0.3,
+    "bce": 0.5,
+    "dice":0.3,
+    "ssim":0,
+    "nll":0
+  }
 }

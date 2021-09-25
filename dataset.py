@@ -1,64 +1,104 @@
 from glob import glob
 from os import listdir
-import logging
-from os.path import splitext
 import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset
-# import torchvision.utils as vutils
-import torchvision.transforms as transforms
-from PIL import Image
+from itertools import chain, cycle
+import librosa, torch, random
+from torch.utils.data import IterableDataset, Dataset
+from utils import polarToComplex, complexToPolar
 
 
-
-
-
-class BasicDataset(Dataset):
-    def __init__(self, specDir, sr=16000):
-        self.dir =specDir
-        self.sr =sr
-        self.ids =[splitext(file[4:])[0] for file in listdir(self.dir) if file.startswith('org_')]
-        logging.info("Creating dataset with {} examples".format(len(self.ids)))
+class TrainDataset(IterableDataset):
+    def __init__(self, wavPath, revPath, samplingRate, stftParams, shuffle=True, stftMaxWidth=12000):
+        self.sr = samplingRate
+        self.stftParams = stftParams
+        self.wavPath = wavPath
+        self.revPath = revPath
+        self.ids = [i for i in listdir(revPath) if not i.startswith('.')]
+        self.stftMaxWidth=stftMaxWidth
+        if shuffle:
+            random.shuffle(self.ids)
 
     def __len__(self):
-        return len(self.ids)
+        """return an "approximate" maximum of data length"""
+        numAudios = len(self.ids)
+        return int(self.stftMaxWidth // (self.stftParams['n_fft']) / 2) * numAudios
 
-    def toImage(self, tensor):
-        plt.imshow(tensor.numpy().astype(np.int16).transpose((1, 2, 0)))
+    def transform(self, X):
+        return (X - X.min()) / (X.max() - X.min())
 
+    def squaredChunks(self, spec):
+        n = self.stftParams['n_fft'] // 2
+        l = spec.shape[1]
+        for i in range(0, l - l % n, n):
+            yield np.expand_dims(spec[:, i:i + n], axis=0)
 
+    def getAudio(self, idx):
+        org = glob(self.wavPath + idx)[0]
+        rev = glob(self.revPath + idx)[0]
+        org, _ = librosa.load(org, sr=self.sr)
+        rev, _ = librosa.load(rev, sr=self.sr)
 
+        org = np.abs(librosa.stft(org, **self.stftParams))[1:][:, :self.stftMaxWidth]
+        rev = np.abs(librosa.stft(rev, **self.stftParams))[1:][:, :self.stftMaxWidth]
+        orgArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(org)))))
+        revArray = self.transform(torch.FloatTensor(list(self.squaredChunks(np.abs(rev)))))[:orgArray.shape[0]]
+        for i, v in enumerate(revArray):
+            yield (orgArray[i] ** 2, v ** 2)
 
-    @classmethod
-    def preprocess(cls, img, size=(256, 256)):
-        img =img.resize(size)
-        img =np.array(img)
+    def getStream(self, ids):
+        yield from chain.from_iterable(map(self.getAudio, ids))
 
-        # HWC to CHW
-        #         img=img.transpose((2, 0, 1))
-        return img
-
-
-    def __getitem__(self, i):
-        idx =self.ids[i]
-        original =glob(self.dir +"org_" +idx +".jpg")[0]
-        reverbed =glob(self.dir +"rev_" +idx +".jpg")[0]
-        transform =transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-
-        original =self.preprocess(Image.open(original))
-        reverbed =self.preprocess(Image.open(reverbed))
-
-        return {
-            'original': transform(original),
-            'reverbed': transform(reverbed)
-        }
+    def __iter__(self):
+        return self.getStream(self.ids)
 
 
-# if __name__=="__main__":
-#     path="/Users/zombie/Downloads/LJSpeech-1.1/specs/"
-#     t=BasicDataset(path)
-#     print(t[0])
-    # breakpoint()
+class TestDataset(Dataset):
+    def __init__(self, wavFile, samplingRate, stftParams):
+        audio, _ = librosa.load(wavFile, sr=samplingRate)
+        self.stft = librosa.stft(audio, **stftParams)
+        self.istftParams = {key: val for key, val in stftParams.items() if key != "n_fft"}
+
+    def __len__(self):
+        return self.stft.shape[0]
+
+    def reconstructAudio(self, newMag):
+        audio = []
+        for idx, batchM in enumerate(newMag):
+            try:
+                tempAudio = librosa.istft(polarToComplex(batchM.numpy()[0], self.phase[idx].numpy()[0]),
+                                          **self.istftParams)
+            except:
+                tempAudio = librosa.istft(polarToComplex(batchM[0], self.phase[idx][0]), **self.istftParams)
+
+            audio.extend(tempAudio)
+
+        return audio
+
+    def transform(self, X):
+        """Normalizes the values between 0 and 1"""
+        return (X - X.min()) / (X.max() - X.min())
+
+    def squaredChunks(self, array):
+        """Accepts numpy array of shape [x, y] returns squared arrays split along y-axis"""
+        xdim = array.shape[0] // 2 * 2
+        ydim = array.shape[1]
+        ydimHead = ydim // xdim * xdim  # y-dim of the initial batches
+        ydimTail = ydim - ydim // xdim * xdim  # y-dim of the last batch
+        batches = np.asarray(np.hsplit(array[:xdim, :ydimHead], ydim // xdim))
+
+        # pad the last batch with minimum value of spectrogram
+        tailBatch = array[:xdim, ydimHead:]
+        tailB = np.full((xdim, xdim), array.min())
+        tailB[:, :ydimTail] = tailBatch
+        batches = np.concatenate((batches, np.expand_dims(tailB, axis=0)), axis=0)
+        batches = self.transform(batches)
+        return np.expand_dims(batches, axis=1)
+
+    def audioProcessing(self):
+        mag, phase = complexToPolar(self.stft)
+        mag = self.squaredChunks(mag)
+        self.phase = self.squaredChunks(phase)
+        return mag
+
+    def __call__(self):
+        return self.audioProcessing()
