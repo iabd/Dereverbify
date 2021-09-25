@@ -29,6 +29,7 @@ class OutConv(nn.Module):
 def convrelu(in_channels, out_channels, kernel=1, padding=0):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel, padding=padding),
+        nn.BatchNorm2d(num_features=out_channels),
         nn.ReLU(inplace=True),
     )
 
@@ -87,11 +88,11 @@ class ResUNet(nn.Module):
         x = self.upsample(x5)
         x4 = self.down4_(x4)
 
-        x = self.up1(x, x4)
+        x = self.dropout(self.up1(x, x4))
         x3 = self.down3_(x3)
-        x = self.up2(x, x3)
+        x = self.dropout(self.up2(x, x3))
         x2 = self.down2_(x2)
-        x = self.up3(x, x2)
+        x = self.dropout(self.up3(x, x2))
 
         x1 = self.down1_(x1)
         x = self.up4(x, x1)
